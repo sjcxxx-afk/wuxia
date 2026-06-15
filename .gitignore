@@ -1,17 +1,25 @@
-# Claude 配置
-.claude/
-
-# 依赖
+# Dependencies
 node_modules/
 
-# 环境变量
-.env
-.env.local
+# Expo
+.expo/
+dist/
 
-# IDE
-.idea/
-.vscode/
+# Build
+*.apk
+*.aab
 
-# 系统文件
+# OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Plan files
+.kunsdd/
