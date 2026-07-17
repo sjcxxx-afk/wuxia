@@ -1,37 +1,51 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import * as Updates from "expo-updates";
 
 /**
- * 热更新 Hook — 封装 expo-updates 的检查、下载、状态监听
+ * 热更新 Hook — 用户自主选择是否下载与重启
  *
  * 行为：
- * - App 启动时自动检查更新
- * - 发现新版本后自动后台下载
- * - App 从后台回到前台时重新检查
- * - 下载完成后通过 isUpdatePending 通知 UI 层
+ * - 启动及回到前台时静默检查更新（不展示「检查中」横幅）
+ * - 发现新版本后提示用户，由用户决定是否下载
+ * - 下载完成后提示用户，由用户决定何时重启
  */
 export function useAppUpdates() {
   const updatesState = Updates.useUpdates();
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const checkingRef = useRef(false);
 
-  // 手动检查更新
   const checkForUpdate = useCallback(async () => {
+    if (!Updates.isEnabled) return;
+    if (checkingRef.current) return;
+
+    checkingRef.current = true;
     try {
       const result = await Updates.checkForUpdateAsync();
       if (result.isAvailable) {
-        // 发现更新，自动下载
-        const fetchResult = await Updates.fetchUpdateAsync();
-        if (fetchResult.isNew) {
-          // 更新已下载，等用户重启 App
-        }
+        setUpdateAvailable(true);
       }
     } catch (error) {
-      // 开发模式或更新不可用时静默处理
       console.log("[useAppUpdates] 检查更新失败:", error);
+    } finally {
+      checkingRef.current = false;
     }
   }, []);
 
-  // 应用更新：立即重启 App
+  const downloadUpdate = useCallback(async () => {
+    if (!Updates.isEnabled) return;
+    try {
+      await Updates.fetchUpdateAsync();
+    } catch (error) {
+      console.log("[useAppUpdates] 下载更新失败:", error);
+    }
+  }, []);
+
+  const dismissUpdate = useCallback(() => {
+    setDismissed(true);
+  }, []);
+
   const applyUpdate = useCallback(async () => {
     try {
       await Updates.reloadAsync();
@@ -40,7 +54,6 @@ export function useAppUpdates() {
     }
   }, []);
 
-  // 启动时 + 回到前台时检查更新
   useEffect(() => {
     checkForUpdate();
 
@@ -54,26 +67,19 @@ export function useAppUpdates() {
     return () => subscription.remove();
   }, [checkForUpdate]);
 
+  const showBanner =
+    !dismissed &&
+    (updateAvailable || updatesState.isUpdatePending || updatesState.isDownloading);
+
   return {
-    /** 是否正在检查更新 */
-    isChecking: updatesState.isChecking,
-    /** 是否正在下载更新 */
+    showBanner,
+    updateAvailable,
     isDownloading: updatesState.isDownloading,
-    /** 是否有可用更新 */
-    isUpdateAvailable: updatesState.isUpdateAvailable,
-    /** 更新是否已下载完毕，等待重启 */
     isUpdatePending: updatesState.isUpdatePending,
-    /** 更新检查错误 */
-    checkError: updatesState.checkError,
-    /** 下载错误 */
-    downloadError: updatesState.downloadError,
-    /** 下载进度 0~1 */
     downloadProgress: updatesState.downloadProgress,
-    /** 当前运行的版本信息 */
-    currentlyRunning: updatesState.currentlyRunning,
-    /** 手动检查更新 */
     checkForUpdate,
-    /** 立即重启应用应用更新 */
+    downloadUpdate,
+    dismissUpdate,
     applyUpdate,
   };
 }

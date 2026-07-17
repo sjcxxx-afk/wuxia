@@ -1,8 +1,99 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { StorageAccessFramework } from "expo-file-system/legacy";
 import { loadData, updateData, resetCache, nowISO, WarehouseData } from "./jsonStore";
 import { isAutoSyncOn, getSyncFolderPath, getSyncMode } from "./syncSettings";
 
+/** Cloud-sync file uses .txt so Quark VIP and similar services accept it. Content remains JSON. */
+const SYNC_FILENAME = "warehouse-data.txt";
+const LEGACY_SYNC_FILENAME = "warehouse-data.json";
+
 let lastAutoExport = 0;
+
+function isSafDirectoryUri(folderPath: string): boolean {
+  return folderPath.startsWith("content://");
+}
+
+function matchesSafFileName(uri: string, fileName: string): boolean {
+  const decoded = decodeURIComponent(uri).toLowerCase();
+  return decoded.includes(fileName.toLowerCase());
+}
+
+async function findSafFile(directoryUri: string, fileNames: string[]): Promise<string | null> {
+  const files = await StorageAccessFramework.readDirectoryAsync(directoryUri);
+  for (const fileName of fileNames) {
+    const found = files.find((uri: string) => matchesSafFileName(uri, fileName));
+    if (found) return found;
+  }
+  return null;
+}
+
+async function writeSafSyncFile(directoryUri: string, content: string): Promise<void> {
+  const existing = await findSafFile(directoryUri, [SYNC_FILENAME]);
+  const fileUri =
+    existing ??
+    (await StorageAccessFramework.createFileAsync(directoryUri, "warehouse-data", "text/plain"));
+  await FileSystem.writeAsStringAsync(fileUri, content);
+
+  const legacy = await findSafFile(directoryUri, [LEGACY_SYNC_FILENAME]);
+  if (legacy) {
+    await FileSystem.deleteAsync(legacy, { idempotent: true });
+  }
+}
+
+async function removeSafLegacySyncFile(directoryUri: string): Promise<void> {
+  try {
+    const legacy = await findSafFile(directoryUri, [LEGACY_SYNC_FILENAME]);
+    if (legacy) {
+      await FileSystem.deleteAsync(legacy, { idempotent: true });
+    }
+  } catch {
+    // ignore cleanup failures
+  }
+}
+
+function syncFilePath(folderPath: string): string {
+  return folderPath + "/" + SYNC_FILENAME;
+}
+
+function legacySyncFilePath(folderPath: string): string {
+  return folderPath + "/" + LEGACY_SYNC_FILENAME;
+}
+
+/** Prefer .txt; fall back to legacy .json for existing sync folders. */
+async function resolveRemoteSyncPath(folderPath: string): Promise<string | null> {
+  if (isSafDirectoryUri(folderPath)) {
+    const primary = await findSafFile(folderPath, [SYNC_FILENAME]);
+    if (primary) return primary;
+    return findSafFile(folderPath, [LEGACY_SYNC_FILENAME]);
+  }
+
+  const primary = syncFilePath(folderPath);
+  const primaryInfo = await FileSystem.getInfoAsync(primary);
+  if (primaryInfo.exists) return primary;
+
+  const legacy = legacySyncFilePath(folderPath);
+  const legacyInfo = await FileSystem.getInfoAsync(legacy);
+  if (legacyInfo.exists) return legacy;
+
+  return null;
+}
+
+async function removeLegacySyncFile(folderPath: string): Promise<void> {
+  try {
+    if (isSafDirectoryUri(folderPath)) {
+      await removeSafLegacySyncFile(folderPath);
+      return;
+    }
+
+    const legacy = legacySyncFilePath(folderPath);
+    const info = await FileSystem.getInfoAsync(legacy);
+    if (info.exists) {
+      await FileSystem.deleteAsync(legacy, { idempotent: true });
+    }
+  } catch {
+    // ignore cleanup failures
+  }
+}
 
 // Trigger auto export after data change
 export async function triggerAutoExport(): Promise<void> {
@@ -34,9 +125,8 @@ export async function checkAutoImport(): Promise<{
     return { hasUpdate: false, remoteTime: null, localTime: null };
   }
   try {
-    const remotePath = folderPath + "/warehouse-data.json";
-    const info = await FileSystem.getInfoAsync(remotePath);
-    if (!info.exists) {
+    const remotePath = await resolveRemoteSyncPath(folderPath);
+    if (!remotePath) {
       return { hasUpdate: false, remoteTime: null, localTime: null };
     }
     const remoteContent = await FileSystem.readAsStringAsync(remotePath);
@@ -62,7 +152,10 @@ export async function checkAutoImport(): Promise<{
 export async function doAutoImport(): Promise<void> {
   const folderPath = getSyncFolderPath();
   if (!folderPath) return;
-  const remotePath = folderPath + "/warehouse-data.json";
+  const remotePath = await resolveRemoteSyncPath(folderPath);
+  if (!remotePath) {
+    throw new Error("同步文件夹中未找到 warehouse-data.txt");
+  }
   const remoteContent = await FileSystem.readAsStringAsync(remotePath);
   const remoteData = JSON.parse(remoteContent) as WarehouseData;
   mergeRemoteIntoLocal(remoteData);
@@ -72,16 +165,27 @@ export async function doAutoExport(): Promise<void> {
   const folderPath = getSyncFolderPath();
   if (!folderPath) return;
   const localData = await loadData();
-  const remotePath = folderPath + "/warehouse-data.json";
-  await FileSystem.writeAsStringAsync(remotePath, JSON.stringify(localData, null, 2));
+  const content = JSON.stringify(localData, null, 2);
+
+  if (isSafDirectoryUri(folderPath)) {
+    await writeSafSyncFile(folderPath, content);
+    return;
+  }
+
+  await FileSystem.writeAsStringAsync(
+    syncFilePath(folderPath),
+    content
+  );
+  await removeLegacySyncFile(folderPath);
 }
 
 // ---- manual export ----
 export async function exportToPath(targetPath: string): Promise<void> {
   const localData = await loadData();
-  const exportPath = targetPath.endsWith(".json")
-    ? targetPath
-    : targetPath + "/warehouse-data.json";
+  const exportPath =
+    targetPath.endsWith(".txt") || targetPath.endsWith(".json")
+      ? targetPath
+      : targetPath + "/" + SYNC_FILENAME;
   await FileSystem.writeAsStringAsync(exportPath, JSON.stringify(localData, null, 2));
 }
 

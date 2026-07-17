@@ -102,7 +102,7 @@ export default function FileImport() {
           });
         imported++;
       }
-      Alert.alert("导入完成", `成功导入 ${imported} 条记录`, [
+      Alert.alert("导入完成", `成功入匣 ${imported} 件`, [
         { text: "返回列表", onPress: () => router.back() },
       ]);
     } catch (err: any) {

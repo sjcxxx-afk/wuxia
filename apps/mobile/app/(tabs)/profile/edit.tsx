@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -78,23 +80,32 @@ export default function EditProfile() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/profile")}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>编辑资料</Text>
+        <Text style={styles.headerTitle}>匣主资料</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.form}>
+      <ScrollView
+        style={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.form}
+      >
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handlePickAvatar}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={36} color="#9CA3AF" />
+                <Ionicons name="diamond-outline" size={36} color="#9CA3AF" />
               </View>
             )}
             <View style={styles.cameraBadge}>
@@ -104,12 +115,12 @@ export default function EditProfile() {
           <Text style={styles.avatarHint}>点击更换头像</Text>
         </View>
 
-        <Text style={styles.label}>昵称</Text>
+        <Text style={styles.label}>匣主之名</Text>
         <TextInput
           style={styles.input}
           value={nickname}
           onChangeText={setNickname}
-          placeholder="输入你的昵称"
+          placeholder="输入匣主之名"
           placeholderTextColor="#9CA3AF"
         />
 
@@ -120,16 +131,17 @@ export default function EditProfile() {
         >
           <Text style={styles.saveText}>{loading ? "保存中..." : "保存"}</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scroll: { flex: 1 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 56, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
   headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
-  form: { padding: 16, marginTop: 12 },
+  form: { padding: 16, marginTop: 12, paddingBottom: 32 },
   avatarSection: { alignItems: "center", marginBottom: 28 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
   avatarPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },

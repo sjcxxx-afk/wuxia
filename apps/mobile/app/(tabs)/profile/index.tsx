@@ -19,7 +19,7 @@ export default function ProfileScreen() {
 
   const refresh = useCallback(async () => {
     const p = await profileRepository.get();
-    setNickname(p.nickname || "未设置");
+    setNickname(p.nickname || "未名匣主");
     setAvatarUrl(p.avatarUrl);
     const s = await itemRepository.getStats();
     setStats(s);
@@ -51,7 +51,7 @@ export default function ProfileScreen() {
         <View style={localStyles.statsIconBox}>
           <Ionicons name="stats-chart-outline" size={20} color="#4F46E5" />
         </View>
-        <Text style={localStyles.statsBtnText}>查看数据统计图表</Text>
+        <Text style={localStyles.statsBtnText}>查看物匣统计</Text>
         <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
       </TouchableOpacity>
 

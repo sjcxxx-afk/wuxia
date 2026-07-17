@@ -1,11 +1,11 @@
 /**
- * OCR 服务 —— 上传订单截图，调用 AI 视觉模型提取购买信息。
+ * OCR 服务 —— 本地抽文字 + 文本大模型结构化提取购买信息。
  *
- * 默认使用 OpenAI GPT-4o 视觉能力，也可替换为其他兼容接口。
- * API Key 持久化到应用文档目录。
+ * API Key / Base / 模型持久化到应用文档目录，可与 DeepSeek 等纯文本模型配合。
  */
 
 import * as FileSystem from "expo-file-system/legacy";
+import { extractOrderText } from "./textExtractService";
 
 export interface OcrResult {
   /** 商品名称 */
@@ -32,15 +32,20 @@ export interface OcrSettings {
   apiBase: string;
   /** 模型名称 */
   model: string;
+  /** 添加/编辑后自动生成 AI 评价 */
+  itemReviewEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: OcrSettings = {
   apiKey: "",
   apiBase: "https://api.openai.com/v1",
-  model: "gpt-4o",
+  model: "gpt-4o-mini",
+  itemReviewEnabled: false,
 };
 
 let ocrCache: OcrSettings | null = null;
+
+export type RecognizeProgress = "extracting" | "parsing";
 
 // ---- file-based storage ----
 async function readSettingsFile(): Promise<string | null> {
@@ -73,7 +78,12 @@ export async function getOcrSettingsAsync(): Promise<OcrSettings> {
   try {
     const raw = await readSettingsFile();
     if (raw) {
-      const parsed: OcrSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      const parsedRaw = JSON.parse(raw);
+      const parsed: OcrSettings = {
+        ...DEFAULT_SETTINGS,
+        ...parsedRaw,
+        itemReviewEnabled: parsedRaw.itemReviewEnabled ?? false,
+      };
       ocrCache = parsed;
       return parsed;
     }
@@ -88,7 +98,9 @@ export async function saveOcrSettings(s: OcrSettings): Promise<void> {
   } catch { /* ignore */ }
 }
 
-const SYSTEM_PROMPT = `你是一个订单截图解析助手。你的任务是从电商订单截图中提取购买信息。
+const SYSTEM_PROMPT = `你是一个订单信息解析助手。你的任务是根据电商订单截图的 OCR 文字提取购买信息。
+
+OCR 文字可能存在乱序、漏字或噪声，请结合电商订单常见版式尽量推断。
 
 请严格只返回一个 JSON 对象，不要包含任何解释文字或 markdown 标记。
 
@@ -105,25 +117,29 @@ JSON 对象的格式如下：
 
 注意：
 - 所有字段都必须存在，无法识别时 name 用空字符串，价格用 0，平台用 "未知"，日期用空字符串
-- purchasePrice 必须是纯数字，不要带货币符号
+- purchasePrice 必须是纯数字，不要带货币符号；优先取实付/合计金额，而非优惠前原价
 - purchaseDate 必须是 YYYY-MM-DD 格式
 - 只返回 JSON，不要有任何其他内容`;
 
 /**
- * 对订单截图执行 OCR 识别
- * @param base64Image 图片的 base64 编码（不含 data:image/... 前缀）
- * @param mimeType 图片 MIME 类型，如 "image/png"
+ * 对订单截图执行本地 OCR + 文本大模型结构化识别
+ * @param imageUri 本地图片 URI
+ * @param onProgress 可选进度回调（提取文字 / AI 解析）
  */
 export async function recognizeOrderScreenshot(
-  base64Image: string,
-  mimeType: string = "image/png"
+  imageUri: string,
+  onProgress?: (stage: RecognizeProgress) => void
 ): Promise<OcrResult> {
   const settings = await getOcrSettingsAsync();
 
   if (!settings.apiKey) {
-    throw new Error("请先在「我的」页面配置 OpenAI API Key");
+    throw new Error("请先在设置中配置 API Key");
   }
 
+  onProgress?.("extracting");
+  const ocrText = await extractOrderText(imageUri);
+
+  onProgress?.("parsing");
   const response = await fetch(`${settings.apiBase}/chat/completions`, {
     method: "POST",
     headers: {
@@ -133,17 +149,10 @@ export async function recognizeOrderScreenshot(
     body: JSON.stringify({
       model: settings.model,
       messages: [
+        { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content: [
-            { type: "text", text: "请从这张订单截图中提取购买信息" },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
-              },
-            },
-          ],
+          content: `请根据以下订单截图 OCR 文字提取购买信息：\n\n${ocrText}`,
         },
       ],
       max_tokens: 500,

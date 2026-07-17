@@ -2,8 +2,8 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { itemRepository } from "../../../../src/repositories/itemRepository";
-import { saveImages, deleteImages } from "../../../../src/storage/imageStore";
+import { itemRepository } from "../../../../lib/repositories/itemRepository";
+import { saveImages, deleteImages } from "../../../../lib/storage/imageStore";
 import ItemForm from "../../../../components/ItemForm";
 
 export default function EditItem() {
@@ -95,7 +95,7 @@ export default function EditItem() {
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/items")}>
           <Ionicons name="close" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>编辑物品</Text>
+        <Text style={styles.headerTitle}>改匣</Text>
         <View style={{ width: 24 }} />
       </View>
       <ItemForm

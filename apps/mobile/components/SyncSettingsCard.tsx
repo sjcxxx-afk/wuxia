@@ -8,13 +8,16 @@ import {
   Modal,
   StyleSheet,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { StorageAccessFramework } from "expo-file-system/legacy";
 import {
   loadSyncSettings,
   saveSyncSettings,
-  type SyncSettings,
 } from "../lib/storage/syncSettings";
 import {
   checkAutoImport,
@@ -116,15 +119,43 @@ export default function SyncSettingsCard() {
   };
 
   const handleSetPath = () => {
+    if (!pathInput.trim()) {
+      Alert.alert("提示", "请先输入或选择同步文件夹");
+      return;
+    }
     saveSyncSettings({ syncFolderPath: pathInput, autoSyncEnabled: autoSync, syncMode });
     setSyncPath(pathInput);
     setPathModalVisible(false);
   };
 
+  const handlePickFolder = async () => {
+    if (Platform.OS !== "android") {
+      Alert.alert("提示", "当前仅 Android 支持系统文件夹选择，iOS 请手动输入路径。");
+      return;
+    }
+    try {
+      const permission = await StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!permission.granted || !permission.directoryUri) {
+        return;
+      }
+      setPathInput(permission.directoryUri);
+      saveSyncSettings({
+        syncFolderPath: permission.directoryUri,
+        autoSyncEnabled: autoSync,
+        syncMode,
+      });
+      setSyncPath(permission.directoryUri);
+      setPathModalVisible(false);
+      Alert.alert("设置成功", "已选择同步文件夹");
+    } catch (e: any) {
+      Alert.alert("选择失败", e?.message ?? "无法选择文件夹");
+    }
+  };
+
   return (
     <View style={styles.syncCard}>
       <Text style={styles.syncHint}>
-        将 warehouse-data.json 放在云盘同步文件夹，实现多设备数据流转
+        将物匣数据文件 warehouse-data.txt 放入云盘同步文件夹，即可多设备流转（兼容旧版 .json）
       </Text>
 
       {/* Sync folder path */}
@@ -141,7 +172,7 @@ export default function SyncSettingsCard() {
         </Text>
       </TouchableOpacity>
       <Text style={styles.settingHint}>
-        安卓示例: /storage/emulated/0/夸克/同步/
+        Android 推荐使用“选择手机文件夹”；也支持手动输入路径
       </Text>
 
       {/* Auto sync toggle */}
@@ -186,14 +217,14 @@ export default function SyncSettingsCard() {
       <View style={styles.syncActions}>
         <TouchableOpacity style={styles.syncBtn} onPress={handleExport}>
           <Ionicons name="cloud-upload-outline" size={16} color="#FFFFFF" />
-          <Text style={styles.syncBtnText}>导出 JSON</Text>
+          <Text style={styles.syncBtnText}>导出数据</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.syncBtn, styles.importBtn]}
           onPress={handleImport}
         >
           <Ionicons name="cloud-download-outline" size={16} color="#FFFFFF" />
-          <Text style={styles.syncBtnText}>{importing ? "导入中..." : "导入 JSON"}</Text>
+          <Text style={styles.syncBtnText}>{importing ? "导入中..." : "导入数据"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -205,34 +236,49 @@ export default function SyncSettingsCard() {
         onRequestClose={() => setPathModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>设置同步文件夹</Text>
-            <Text style={styles.pathHint}>
-              请输入云盘同步文件夹的完整路径
-            </Text>
-            <Text style={styles.pathExample}>
-              例: /storage/emulated/0/夸克/同步
-            </Text>
-            <TextInput
-              style={styles.pathInput}
-              value={pathInput}
-              onChangeText={setPathInput}
-              placeholder="/storage/emulated/0/..."
-              placeholderTextColor="#9CA3AF"
-              autoCapitalize="none"
-            />
-            <View style={styles.pathModalBtns}>
-              <TouchableOpacity
-                style={styles.pathCancelBtn}
-                onPress={() => setPathModalVisible(false)}
-              >
-                <Text style={styles.pathCancelText}>取消</Text>
+          <KeyboardAvoidingView
+            behavior="padding"
+            style={styles.keyboardAvoiding}
+          >
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>设置同步文件夹</Text>
+              <Text style={styles.pathHint}>
+                可直接选择手机文件夹（推荐），也可手动输入路径/URI
+              </Text>
+              <TouchableOpacity style={styles.pickFolderBtn} onPress={handlePickFolder}>
+                <Ionicons name="folder-open-outline" size={16} color="#4F46E5" />
+                <Text style={styles.pickFolderText}>选择手机文件夹（推荐）</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.pathConfirmBtn} onPress={handleSetPath}>
-                <Text style={styles.pathConfirmText}>确认</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              <Text style={styles.pathExample}>
+                例如：/storage/emulated/0/夸克/同步 或 content://...
+              </Text>
+              <TextInput
+                style={styles.pathInput}
+                value={pathInput}
+                onChangeText={setPathInput}
+                placeholder="/storage/emulated/0/... 或 content://..."
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="none"
+              />
+              <View style={styles.pathModalBtns}>
+                <TouchableOpacity
+                  style={styles.pathCancelBtn}
+                  onPress={() => setPathModalVisible(false)}
+                >
+                  <Text style={styles.pathCancelText}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.pathConfirmBtn} onPress={handleSetPath}>
+                  <Text style={styles.pathConfirmText}>确认</Text>
+                </TouchableOpacity>
+              </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
@@ -269,9 +315,25 @@ const styles = StyleSheet.create({
   syncBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
+  keyboardAvoiding: { width: "100%", maxHeight: "90%" },
+  modalScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
   modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 16 },
   pathHint: { fontSize: 13, color: "#6B7280", marginBottom: 4, textAlign: "center" },
+  pickFolderBtn: {
+    marginTop: 6,
+    marginBottom: 10,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    backgroundColor: "#EEF2FF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  pickFolderText: { fontSize: 13, color: "#4338CA", fontWeight: "600" },
   pathExample: { fontSize: 12, color: "#9CA3AF", marginBottom: 16, textAlign: "center", fontStyle: "italic" },
   pathInput: { height: 44, borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, paddingHorizontal: 14, fontSize: 14, color: "#111827", backgroundColor: "#F9FAFB", marginBottom: 12 },
   pathModalBtns: { flexDirection: "row", gap: 10 },

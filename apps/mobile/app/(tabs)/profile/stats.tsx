@@ -106,7 +106,7 @@ export default function StatsPage() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>数据统计</Text>
+        <Text style={styles.headerTitle}>物匣统计</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -115,7 +115,7 @@ export default function StatsPage() {
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryValue}>{totalItems}</Text>
-            <Text style={styles.summaryLabel}>物品总数</Text>
+            <Text style={styles.summaryLabel}>匣中件数</Text>
           </View>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryValue}>¥{totalValue}</Text>
@@ -140,7 +140,7 @@ export default function StatsPage() {
         />
 
         {/* Status Distribution */}
-        <CategoryBarChart data={statusData} title="物品状态分布" />
+        <CategoryBarChart data={statusData} title="匣物状态分布" />
 
         <View style={{ height: 20 }} />
       </ScrollView>

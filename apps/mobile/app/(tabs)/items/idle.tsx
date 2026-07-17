@@ -41,8 +41,8 @@ export default function IdleItemsPage() {
       {!loading && items.length === 0 ? (
         <EmptyState
           icon="checkmark-circle-outline"
-          title="没有待处理的闲置物品"
-          subtitle="所有闲置物品都在提醒天数以内"
+          title="没有待处理的闲置匣物"
+          subtitle="所有闲置匣物都在提醒天数以内"
         />
       ) : (
         <FlatList
@@ -53,7 +53,7 @@ export default function IdleItemsPage() {
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
           ListHeaderComponent={
             <Text style={styles.hint}>
-              以下物品闲置超过 {getReminderSettings().idleReminderDays} 天，按闲置时长排序
+              以下匣物闲置超过 {getReminderSettings().idleReminderDays} 天，按闲置时长排序
             </Text>
           }
         />

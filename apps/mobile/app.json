@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "warehouse-app",
+    "name": "物匣",
     "slug": "warehouse-app",
-    "scheme": "warehouse-app",
+    "scheme": "wuxia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,11 +32,12 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
+        "backgroundColor": "#4F46E5",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "package": "com.sjc.warehouse",
+      "package": "com.sjc.wuxia",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",

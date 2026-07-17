@@ -10,7 +10,7 @@ type Props = {
 export default function SearchBar({
   value,
   onChangeText,
-  placeholder = "搜索物品名称、品牌...",
+  placeholder = "寻觅匣物名称、品牌...",
 }: Props) {
   return (
     <View style={styles.container}>

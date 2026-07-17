@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,39 +7,76 @@ import {
   Image,
   Modal,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { itemRepository } from "../../../src/repositories/itemRepository";
-import { categoryRepository } from "../../../src/repositories/categoryRepository";
-import { Item, CustomField } from "../../../src/types";
+import { itemRepository } from "../../../lib/repositories/itemRepository";
+import { categoryRepository } from "../../../lib/repositories/categoryRepository";
+import { getOcrSettingsAsync } from "../../../lib/ocr/ocrService";
+import { Item, CustomField } from "../../../lib/types";
 import StatusBadge from "../../../components/StatusBadge";
 import confirmDialog from "../../../components/ConfirmDialog";
+
+const REVIEW_PENDING_MS = 60 * 1000;
 
 export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [item, setItem] = useState<Item | null>(null);
   const [categoryFields, setCategoryFields] = useState<CustomField[]>([]);
   const [fullImage, setFullImage] = useState<string | null>(null);
+  const [itemReviewEnabled, setItemReviewEnabled] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const loadItem = useCallback(async () => {
     if (!id) return;
-    itemRepository.getById(id).then((data) => {
-      if (data) {
-        setItem(data);
-        // Load category's custom fields for displaying labels
-        if (data.category?.id) {
-          categoryRepository.list().then((cats) => {
-            const cat = cats.find((c) => c.id === data.category!.id);
-            setCategoryFields(cat?.customFields ?? []);
-          });
-        }
+    const data = await itemRepository.getById(id);
+    if (data) {
+      setItem(data);
+      if (data.category?.id) {
+        const cats = await categoryRepository.list();
+        const cat = cats.find((c) => c.id === data.category!.id);
+        setCategoryFields(cat?.customFields ?? []);
+      } else {
+        setCategoryFields([]);
       }
-    });
+    }
   }, [id]);
 
+  useFocusEffect(
+    useCallback(() => {
+      getOcrSettingsAsync().then((s) => setItemReviewEnabled(s.itemReviewEnabled));
+      loadItem();
+    }, [loadItem])
+  );
+
+  useEffect(() => {
+    if (!id || !itemReviewEnabled || item?.aiComment) {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+
+    const updatedAt = item?.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+    const isPending = item && Date.now() - updatedAt < REVIEW_PENDING_MS;
+    if (!isPending) return;
+
+    pollRef.current = setInterval(() => {
+      loadItem();
+    }, 2000);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [id, item, itemReviewEnabled, loadItem]);
+
   const handleDelete = () => {
-    confirmDialog("删除物品", `确认删除"${item?.name}"？此操作不可撤销。`, async () => {
+    confirmDialog("移出物匣", `确认将「${item?.name}」移出物匣？此操作不可撤销。`, async () => {
       await itemRepository.delete(id!);
       router.canGoBack() ? router.back() : router.replace("/(tabs)/items");
     });
@@ -62,6 +99,13 @@ export default function ItemDetail() {
       </View>
     );
   };
+
+  const updatedAtMs = new Date(item.updatedAt).getTime();
+  const reviewPending =
+    itemReviewEnabled &&
+    !item.aiComment &&
+    Date.now() - updatedAtMs < REVIEW_PENDING_MS;
+  const showReviewCard = itemReviewEnabled;
 
   return (
     <View style={styles.container}>
@@ -105,6 +149,37 @@ export default function ItemDetail() {
           <StatusBadge status={item.status} />
         </View>
 
+        {/* AI Review Card */}
+        {showReviewCard && (
+          <View style={styles.reviewCard}>
+            <View style={styles.reviewHeader}>
+              <Ionicons name="sparkles" size={16} color="#4F46E5" />
+              <Text style={styles.reviewTitle}>匣灵评价</Text>
+            </View>
+            {item.aiComment ? (
+              <>
+                <Text style={styles.reviewText}>{item.aiComment}</Text>
+                {item.aiCommentAt && (
+                  <Text style={styles.reviewTime}>
+                    {new Date(item.aiCommentAt).toLocaleString("zh-CN")}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <View style={styles.reviewLoading}>
+                {reviewPending ? (
+                  <>
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                    <Text style={styles.reviewLoadingText}>匣灵正在评价…</Text>
+                  </>
+                ) : (
+                  <Text style={styles.reviewLoadingText}>暂无评价（可改匣后重新触发）</Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Main Info Card */}
         <View style={styles.card}>
           <Field label="品牌" value={item.brand} />
@@ -139,7 +214,7 @@ export default function ItemDetail() {
           onPress={() => router.push(`/(tabs)/items/edit/${item.id}`)}
         >
           <Ionicons name="create-outline" size={18} color="#FFFFFF" />
-          <Text style={styles.editBtnText}>编辑物品</Text>
+          <Text style={styles.editBtnText}>改匣</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -184,7 +259,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: "600", color: "#111827", textAlign: "center", marginHorizontal: 12 },
   body: { flex: 1 },
-  // Image gallery
   imageGallery: {
     maxHeight: 180,
     paddingTop: 16,
@@ -195,7 +269,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#F3F4F6",
   },
-  // Title
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -205,7 +278,45 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   itemName: { fontSize: 22, fontWeight: "700", color: "#111827", flex: 1, marginRight: 12 },
-  // Info card
+  reviewCard: {
+    backgroundColor: "#EEF2FF",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  reviewTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#4F46E5",
+  },
+  reviewText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 22,
+  },
+  reviewTime: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 8,
+  },
+  reviewLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  reviewLoadingText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
   card: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
@@ -230,7 +341,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: { fontSize: 14, color: "#9CA3AF", flex: 1 },
   fieldValue: { fontSize: 14, color: "#111827", fontWeight: "500", flex: 2, textAlign: "right" },
-  // Edit button
   editBtn: {
     flexDirection: "row",
     justifyContent: "center",
@@ -244,7 +354,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  // Full image modal
   fullImageOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.9)",

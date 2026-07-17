@@ -46,7 +46,7 @@ export default function AddItem() {
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/items")}>
           <Ionicons name="close" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>添加物品</Text>
+        <Text style={styles.headerTitle}>入匣</Text>
         <View style={{ width: 24 }} />
       </View>
       <ItemForm onSave={handleSave} loading={loading} />

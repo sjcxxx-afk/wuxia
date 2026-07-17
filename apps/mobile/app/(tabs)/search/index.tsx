@@ -66,7 +66,7 @@ export default function Search() {
           onPress={() => router.push("/(tabs)/search/qa")}
         >
           <Ionicons name="sparkles" size={18} color="#4F46E5" />
-          <Text style={styles.aiBtnText}>AI 问答</Text>
+          <Text style={styles.aiBtnText}>匣灵</Text>
         </TouchableOpacity>
       </View>
 
@@ -74,7 +74,7 @@ export default function Search() {
         <SearchBar
           value={query}
           onChangeText={setQuery}
-          placeholder="搜索物品名称、品牌、备注..."
+          placeholder="寻觅匣物名称、品牌、备注..."
         />
       </View>
 
@@ -133,13 +133,13 @@ export default function Search() {
           hasCriteria ? (
             <EmptyState
               icon="search-outline"
-              title="没有找到匹配的物品"
+              title="匣中未觅得匹配"
               subtitle="试试其他关键词或筛选条件"
             />
           ) : (
             <EmptyState
               icon="search-outline"
-              title="搜索你的物品"
+              title="寻觅匣中之物"
               subtitle="输入关键词或选择筛选条件即可实时搜索"
             />
           )

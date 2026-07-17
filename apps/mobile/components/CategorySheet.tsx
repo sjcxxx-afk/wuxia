@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { categoryRepository } from "../lib/repositories/categoryRepository";
@@ -85,7 +86,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
   };
 
   const handleDelete = () => {
-    Alert.alert("删除分类", "该分类下的物品不会被删除，分类将被清空", [
+    Alert.alert("删除分类", "该分类下的匣物不会被删除，分类将被清空", [
       { text: "取消", style: "cancel" },
       {
         text: "确认删除",
@@ -122,9 +123,18 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: "100%" }}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior="padding"
+      >
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: "100%" }}
+              keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
+            >
             <View style={styles.header}>
               <Text style={styles.title}>{category ? "编辑分类" : "新建分类"}</Text>
               <TouchableOpacity onPress={onClose}>
@@ -256,12 +266,14 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoiding: { flex: 1 },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

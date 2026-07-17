@@ -2,8 +2,8 @@
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { itemRepository } from "../../../src/repositories/itemRepository";
-import { ItemSummary } from "../../../src/types";
+import { itemRepository } from "../../../lib/repositories/itemRepository";
+import { ItemSummary } from "../../../lib/types";
 import ItemCard from "../../../components/ItemCard";
 import EmptyState from "../../../components/EmptyState";
 
@@ -28,14 +28,14 @@ export default function CategoryDetail() {
         <View style={{ width: 24 }} />
       </View>
 
-      <Text style={styles.count}>{items.length} 件物品</Text>
+      <Text style={styles.count}>{items.length} 件匣物</Text>
 
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ItemCard item={item} />}
         ListEmptyComponent={
-          <EmptyState title="此分类下暂无物品" />
+          <EmptyState title="此分类下匣中尚空" />
         }
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
       />

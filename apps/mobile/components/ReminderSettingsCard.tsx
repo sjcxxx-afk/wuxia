@@ -29,7 +29,7 @@ export default function ReminderSettingsCard() {
       </View>
 
       <Text style={styles.desc}>
-        闲置超过设定天数的物品将出现在提醒中
+        闲置超过设定天数的匣物将出现在提醒中
       </Text>
 
       <View style={styles.optionsRow}>

@@ -2,62 +2,58 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "rea
 import { Ionicons } from "@expo/vector-icons";
 
 export interface UpdateBannerProps {
-  /** 是否正在检查更新 */
-  isChecking: boolean;
+  /** 是否显示横幅 */
+  visible: boolean;
+  /** 是否有可下载的新版本 */
+  updateAvailable: boolean;
   /** 是否正在下载更新 */
   isDownloading: boolean;
-  /** 更新是否已就绪 */
+  /** 更新是否已下载完毕，等待用户重启 */
   isUpdatePending: boolean;
   /** 下载进度 0~1 */
   downloadProgress?: number;
-  /** 重启应用 */
+  /** 下载更新 */
+  onDownloadUpdate: () => void;
+  /** 应用更新（重启） */
   onApplyUpdate: () => void;
+  /** 稍后处理 */
+  onDismiss: () => void;
 }
 
 /**
- * 热更新提示横幅
+ * 热更新提示横幅（用户自主选择）
  *
- * 显示三种状态：
- * - 检查中 / 下载中：带进度指示
- * - 下载完成：点击重启按钮
- * - 无更新：不渲染
+ * - 发现新版本：下载 / 稍后
+ * - 下载中：进度提示
+ * - 下载完成：立即重启 / 稍后
  */
 export default function UpdateBanner({
-  isChecking,
+  visible,
+  updateAvailable,
   isDownloading,
   isUpdatePending,
   downloadProgress,
+  onDownloadUpdate,
   onApplyUpdate,
+  onDismiss,
 }: UpdateBannerProps) {
-  // 无更新或未开始检查时不显示
-  if (!isChecking && !isDownloading && !isUpdatePending) {
-    return null;
-  }
+  if (!visible) return null;
 
-  // 下载完成，等待重启
   if (isUpdatePending) {
     return (
       <View style={[styles.banner, styles.bannerReady]}>
         <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-        <Text style={styles.text}>新版本已就绪</Text>
-        <TouchableOpacity style={styles.restartBtn} onPress={onApplyUpdate}>
-          <Text style={styles.restartBtnText}>立即重启</Text>
+        <Text style={styles.text}>新版本已下载，重启后生效</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={onApplyUpdate}>
+          <Text style={styles.actionBtnText}>立即重启</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissBtn} onPress={onDismiss}>
+          <Text style={styles.dismissBtnText}>稍后</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // 检查中
-  if (isChecking) {
-    return (
-      <View style={[styles.banner, styles.bannerChecking]}>
-        <ActivityIndicator size="small" color="#FFFFFF" />
-        <Text style={styles.text}>正在检查更新...</Text>
-      </View>
-    );
-  }
-
-  // 下载中
   if (isDownloading) {
     const pct =
       downloadProgress != null ? Math.round(downloadProgress * 100) : null;
@@ -67,6 +63,21 @@ export default function UpdateBanner({
         <Text style={styles.text}>
           {pct != null ? `正在下载更新 ${pct}%` : "正在下载更新..."}
         </Text>
+      </View>
+    );
+  }
+
+  if (updateAvailable) {
+    return (
+      <View style={[styles.banner, styles.bannerAvailable]}>
+        <Ionicons name="cloud-download-outline" size={18} color="#FFFFFF" />
+        <Text style={styles.text}>发现新版本</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={onDownloadUpdate}>
+          <Text style={styles.actionBtnText}>下载更新</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissBtn} onPress={onDismiss}>
+          <Text style={styles.dismissBtnText}>稍后</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -82,11 +93,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
   },
+  bannerAvailable: {
+    backgroundColor: "#4F46E5",
+  },
   bannerReady: {
     backgroundColor: "#059669",
-  },
-  bannerChecking: {
-    backgroundColor: "#4F46E5",
   },
   bannerDownloading: {
     backgroundColor: "#4F46E5",
@@ -97,15 +108,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
-  restartBtn: {
+  actionBtn: {
     backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  restartBtnText: {
+  actionBtnText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  dismissBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  dismissBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
   },
 });

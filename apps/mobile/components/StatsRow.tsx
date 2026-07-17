@@ -10,7 +10,7 @@ type Props = {
 export default function StatsRow({ stats, onIdlePress }: Props) {
   return (
     <View style={styles.statsRow}>
-      <StatCard label="物品总数" value={String(stats.total)} color="#4F46E5" />
+      <StatCard label="匣中件数" value={String(stats.total)} color="#4F46E5" />
       <StatCard
         label="闲置中"
         value={String(stats.idle)}

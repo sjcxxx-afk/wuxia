@@ -27,9 +27,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="items"
         options={{
-          title: "物品",
+          title: "匣中",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" size={size} color={color} />
+            <Ionicons name="file-tray-full-outline" size={size} color={color} />
           ),
         }}
       />
@@ -54,9 +54,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "我的",
+          title: "匣主",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Ionicons name="diamond-outline" size={size} color={color} />
           ),
         }}
       />

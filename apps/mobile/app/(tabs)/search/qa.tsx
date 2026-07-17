@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,21 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
+  Image,
+  Keyboard,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askQuestion, QaMessage } from "../../../lib/ai/qaService";
 
 const PRESETS = [
-  { icon: "📊", label: "我的仓库概览", question: "给我一个仓库概览，包括总数、总价值和分类分布" },
-  { icon: "💤", label: "有哪些闲置物品", question: "列出所有闲置中的物品" },
+  { icon: "📊", label: "物匣概览", question: "给我一个物匣概览，包括总数、总价值和分类分布" },
+  { icon: "💤", label: "有哪些闲置匣物", question: "列出所有闲置中的匣物" },
   { icon: "💰", label: "哪个平台花最多", question: "我在各平台分别花了多少钱？哪个平台花最多？" },
-  { icon: "🆕", label: "最近买了什么", question: "我最近买的5件物品是什么？" },
-  { icon: "💎", label: "最贵的是哪些", question: "最贵的5件物品是什么？" },
+  { icon: "🆕", label: "最近买了什么", question: "我最近买的5件匣物是什么？" },
+  { icon: "💎", label: "最贵的是哪些", question: "最贵的5件匣物是什么？" },
   { icon: "🏪", label: "京东买了什么", question: "我在京东上买了哪些东西？" },
 ];
 
@@ -27,7 +29,33 @@ export default function QaPage() {
   const [messages, setMessages] = useState<QaMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // edge-to-edge: keyboard height often includes the nav bar inset
+  const bottomPad =
+    keyboardHeight > 0
+      ? Math.max(0, keyboardHeight - insets.bottom)
+      : insets.bottom;
 
   const send = async (text: string) => {
     const q = text.trim();
@@ -39,7 +67,6 @@ export default function QaPage() {
     setInput("");
     setLoading(true);
 
-    // Scroll down
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
@@ -58,17 +85,13 @@ export default function QaPage() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={[styles.container, { paddingBottom: bottomPad }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI 问答</Text>
+        <Text style={styles.headerTitle}>匣灵</Text>
         <TouchableOpacity
           onPress={() => setMessages([])}
           disabled={messages.length === 0}
@@ -91,10 +114,13 @@ export default function QaPage() {
       >
         {messages.length === 0 ? (
           <View style={styles.welcome}>
-            <Text style={styles.welcomeIcon}>🤖</Text>
-            <Text style={styles.welcomeTitle}>仓库 AI 助手</Text>
+            <Image
+              source={require("../../../assets/xialing-avatar.png")}
+              style={styles.welcomeIcon}
+            />
+            <Text style={styles.welcomeTitle}>匣灵</Text>
             <Text style={styles.welcomeSub}>
-              我可以回答关于你仓库中物品的问题{'\n'}试试下面的快捷提问
+              我可以回答关于你物匣、匣中之物的问题{'\n'}试试下面的快捷提问
             </Text>
             <View style={styles.presetsGrid}>
               {PRESETS.map((p, i) => (
@@ -120,7 +146,10 @@ export default function QaPage() {
             >
               {m.role === "assistant" && (
                 <View style={styles.avatarBot}>
-                  <Text style={styles.avatarBotText}>🤖</Text>
+                  <Image
+                    source={require("../../../assets/xialing-avatar.png")}
+                    style={styles.avatarBotImage}
+                  />
                 </View>
               )}
               <View
@@ -144,7 +173,10 @@ export default function QaPage() {
         {loading && (
           <View style={styles.bubbleRowBot}>
             <View style={styles.avatarBot}>
-              <Text style={styles.avatarBotText}>🤖</Text>
+              <Image
+                source={require("../../../assets/xialing-avatar.png")}
+                style={styles.avatarBotImage}
+              />
             </View>
             <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
               <ActivityIndicator size="small" color="#4F46E5" />
@@ -159,7 +191,7 @@ export default function QaPage() {
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="问点什么..."
+          placeholder="问匣灵点什么..."
           placeholderTextColor="#9CA3AF"
           multiline
           maxLength={500}
@@ -173,7 +205,7 @@ export default function QaPage() {
           <Ionicons name="send" size={18} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -196,7 +228,7 @@ const styles = StyleSheet.create({
   chatContent: { padding: 16, paddingBottom: 8 },
   // Welcome
   welcome: { alignItems: "center", paddingTop: 32 },
-  welcomeIcon: { fontSize: 56, marginBottom: 12 },
+  welcomeIcon: { width: 88, height: 88, borderRadius: 22, marginBottom: 12 },
   welcomeTitle: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 6 },
   welcomeSub: { fontSize: 14, color: "#9CA3AF", textAlign: "center", lineHeight: 20, marginBottom: 24 },
   presetsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, paddingHorizontal: 16 },
@@ -222,8 +254,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#EEF2FF",
     justifyContent: "center", alignItems: "center",
     marginRight: 8,
+    overflow: "hidden",
   },
-  avatarBotText: { fontSize: 16 },
+  avatarBotImage: { width: 32, height: 32 },
   bubble: { maxWidth: "80%", borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
   bubbleUser: { backgroundColor: "#4F46E5", borderBottomRightRadius: 4 },
   bubbleBot: { backgroundColor: "#FFFFFF", borderBottomLeftRadius: 4, borderWidth: 1, borderColor: "#F3F4F6" },

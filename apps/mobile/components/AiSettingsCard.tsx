@@ -6,6 +6,9 @@ import {
   TextInput,
   Modal,
   StyleSheet,
+  Switch,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getOcrSettings, getOcrSettingsAsync, saveOcrSettings, type OcrSettings } from "../lib/ocr/ocrService";
@@ -13,8 +16,8 @@ import { getOcrSettings, getOcrSettingsAsync, saveOcrSettings, type OcrSettings 
 type AIProvider = "openai" | "deepseek" | "custom";
 
 const AI_PROVIDERS: { key: AIProvider; label: string; apiBase: string; model: string }[] = [
-  { key: "openai", label: "OpenAI", apiBase: "https://api.openai.com/v1", model: "gpt-4o" },
-  { key: "deepseek", label: "DeepSeek", apiBase: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  { key: "openai", label: "OpenAI", apiBase: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  { key: "deepseek", label: "DeepSeek", apiBase: "https://api.deepseek.com/v1", model: "deepseek-v4-flash" },
   { key: "custom", label: "自定义", apiBase: "", model: "" },
 ];
 
@@ -31,11 +34,13 @@ export default function AiSettingsCard() {
   const [apiKey, setApiKey] = useState(getOcrSettings().apiKey);
   const [apiBase, setApiBase] = useState(getOcrSettings().apiBase);
   const [model, setModel] = useState(getOcrSettings().model);
+  const [itemReviewEnabled, setItemReviewEnabled] = useState(false);
   const [configured, setConfigured] = useState(false);
 
   // 挂载时异步加载持久化的 AI 配置
   useEffect(() => {
     getOcrSettingsAsync().then((s) => {
+      setItemReviewEnabled(s.itemReviewEnabled);
       if (s.apiKey) {
         setConfigured(true);
         setProvider(getProviderFromSettings(s));
@@ -47,7 +52,7 @@ export default function AiSettingsCard() {
   }, []);
 
   const handleSave = async () => {
-    await saveOcrSettings({ apiKey, apiBase, model });
+    await saveOcrSettings({ apiKey, apiBase, model, itemReviewEnabled });
     setConfigured(!!apiKey.trim());
     setModalVisible(false);
   };
@@ -58,6 +63,7 @@ export default function AiSettingsCard() {
     setApiKey(s.apiKey);
     setApiBase(s.apiBase);
     setModel(s.model);
+    setItemReviewEnabled(s.itemReviewEnabled);
     setModalVisible(true);
   };
 
@@ -81,7 +87,9 @@ export default function AiSettingsCard() {
           <View style={{ flex: 1 }}>
             <Text style={styles.ocrTitle}>截图识别 AI</Text>
             <Text style={styles.ocrDesc}>
-              {configured ? "已配置 · 点击修改" : "未配置 · 点击设置"}
+              {configured
+                ? "本地 OCR + AI 结构化 · 点击修改"
+                : "本地 OCR + AI 结构化 · 点击设置"}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
@@ -96,8 +104,17 @@ export default function AiSettingsCard() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>AI 识别设置</Text>
+          <KeyboardAvoidingView
+            behavior="padding"
+            style={styles.keyboardAvoiding}
+          >
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>AI 识别设置</Text>
 
             <Text style={styles.fieldLabel}>供应商</Text>
             <View style={styles.providerRow}>
@@ -144,10 +161,25 @@ export default function AiSettingsCard() {
               style={styles.fieldInput}
               value={model}
               onChangeText={setModel}
-              placeholder="gpt-4o"
+              placeholder="gpt-4o-mini"
               placeholderTextColor="#9CA3AF"
               autoCapitalize="none"
             />
+
+            <View style={styles.reviewRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>添加后 AI 评价</Text>
+                <Text style={styles.reviewHint}>
+                  开启后，新建或编辑时会消耗少量 token 生成简短评价
+                </Text>
+              </View>
+              <Switch
+                value={itemReviewEnabled}
+                onValueChange={setItemReviewEnabled}
+                trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
+                thumbColor={itemReviewEnabled ? "#4F46E5" : "#9CA3AF"}
+              />
+            </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -160,7 +192,9 @@ export default function AiSettingsCard() {
                 <Text style={styles.confirmBtnText}>保存</Text>
               </TouchableOpacity>
             </View>
-          </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </>
@@ -190,6 +224,8 @@ const styles = StyleSheet.create({
   ocrDesc: { fontSize: 13, color: "#6B7280", lineHeight: 19 },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
+  keyboardAvoiding: { width: "100%", maxHeight: "90%" },
+  modalScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
   modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 16 },
   fieldLabel: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 6 },
@@ -208,6 +244,18 @@ const styles = StyleSheet.create({
     color: "#111827",
     backgroundColor: "#F9FAFB",
     marginBottom: 16,
+  },
+  reviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  reviewHint: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 4,
+    lineHeight: 17,
   },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },

@@ -42,6 +42,8 @@ export interface ItemData {
   notes: string | null;
   images: string[];
   customValues: Record<string, string>;
+  aiComment: string | null;
+  aiCommentAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +114,8 @@ export async function loadData(): Promise<WarehouseData> {
       ...item,
       images: item.images ?? [],
       customValues: item.customValues ?? {},
+      aiComment: item.aiComment ?? null,
+      aiCommentAt: item.aiCommentAt ?? null,
     }));
     cache = parsed;
     return cache;

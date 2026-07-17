@@ -53,7 +53,7 @@ export default function ItemList() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>我的物品</Text>
+      <Text style={styles.headerTitle}>匣中</Text>
       <View style={styles.headerActions}>
         {idleOverdueCount > 0 && (
           <TouchableOpacity
@@ -91,9 +91,9 @@ export default function ItemList() {
           />
         )}
         <EmptyState
-          icon="cube-outline"
-          title="还没有物品"
-          subtitle="点击右上角 + 添加，或从订单导入"
+          icon="file-tray-full-outline"
+          title="匣中尚空"
+          subtitle="点击右上角 + 入匣，或从订单导入"
         />
       </View>
     );

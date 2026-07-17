@@ -3,13 +3,14 @@
 ## v3.0.0 (2026-05-29)
 
 ### Added
-- 物品图片管理：支持为物品添加多张图片，列表缩略图显示，详情页图片画廊
-- 分类自定义字段：支持 text/number/date 类型，创建物品时动态渲染
+- 匣物图片管理：支持为匣物添加多张图片，列表缩略图显示，详情页图片画廊
+- 分类自定义字段：支持 text/number/date 类型，入匣时动态渲染
 
 ### Changed
 - 拆分 Profile 页面为独立组件
 - 提取同步设置为独立模块
 - 完善项目文档（README、CHANGELOG、AGENTS.md）
+- 品牌文案对齐：物匣 / 匣中 / 匣灵 / 匣主（入匣 · 改匣）
 
 ### Fixed
 - 修复 ItemCard 中 snake_case 属性名拼写错误
@@ -31,5 +32,5 @@
 ## v1.0.0 (2026-05-16)
 
 ### Added
-- 初始版本：基于 Supabase Auth + PostgreSQL 的个人仓库管理系统
-- 物品 CRUD、分类管理、搜索筛选
+- 初始版本：基于 Supabase Auth + PostgreSQL 的物匣（个人物匣）
+- 匣物 CRUD、分类管理、寻觅筛选

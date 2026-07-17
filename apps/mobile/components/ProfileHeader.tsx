@@ -11,12 +11,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const LEVELS = [
-  { name: "新手仓库员", icon: "📦", minItems: 0 },
-  { name: "初级收藏家", icon: "🔰", minItems: 10 },
-  { name: "资深囤货党", icon: "📚", minItems: 30 },
-  { name: "物品管理师", icon: "🎯", minItems: 60 },
-  { name: "仓库大亨", icon: "👑", minItems: 100 },
-  { name: "万物之主", icon: "🌟", minItems: 200 },
+  { name: "初启匣主", icon: "📦", minItems: 0 },
+  { name: "拾物匣主", icon: "🔰", minItems: 10 },
+  { name: "积物匣主", icon: "📚", minItems: 30 },
+  { name: "理匣师", icon: "🎯", minItems: 60 },
+  { name: "丰匣主人", icon: "👑", minItems: 100 },
+  { name: "万物匣主", icon: "🌟", minItems: 200 },
 ];
 
 function getLevelInfo(totalItems: number) {
@@ -59,16 +59,16 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarPlaceholderText}>
-                {nickname?.charAt(0)?.toUpperCase() || "W"}
+                {nickname?.charAt(0)?.toUpperCase() || "匣"}
               </Text>
             </View>
           )}
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.nickname} numberOfLines={1}>
-            {nickname || "未设置"}
+            {nickname || "未名匣主"}
           </Text>
-          <Text style={styles.editHint}>点击编辑资料</Text>
+          <Text style={styles.editHint}>点击编辑匣主</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
       </TouchableOpacity>
@@ -108,7 +108,7 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
           onPress={() => setLevelModalVisible(false)}
         >
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
-            <Text style={styles.modalTitle}>等级体系</Text>
+            <Text style={styles.modalTitle}>匣主等级</Text>
             <View style={styles.levelCurrent}>
               <Text style={styles.levelCurrentIcon}>{levelInfo.current.icon}</Text>
               <Text style={styles.levelCurrentName}>{levelInfo.current.name}</Text>

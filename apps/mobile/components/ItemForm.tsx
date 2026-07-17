@@ -8,6 +8,8 @@ import {
   Image,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -117,7 +119,7 @@ export default function ItemForm({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("提示", "请输入物品名称");
+      Alert.alert("提示", "请输入匣物名称");
       return;
     }
     await onSave(
@@ -166,10 +168,20 @@ export default function ItemForm({
   );
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoiding}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+    >
+      <ScrollView
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.scrollContent}
+      >
       {/* Images */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>物品图片</Text>
+        <Text style={styles.label}>匣物图片</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.imageRow}>
             {images.map((uri, index) => (
@@ -193,7 +205,7 @@ export default function ItemForm({
 
       {/* Name */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>物品名称 *</Text>
+        <Text style={styles.label}>匣物名称 *</Text>
         <TextInput
           style={styles.input}
           value={name}
@@ -388,16 +400,21 @@ export default function ItemForm({
         onPress={handleSave}
         disabled={loading}
       >
-        <Text style={styles.saveBtnText}>{loading ? "保存中..." : "保存"}</Text>
+        <Text style={styles.saveBtnText}>
+          {loading ? "保存中..." : initial ? "保存" : "收入物匣"}
+        </Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoiding: { flex: 1 },
   container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollContent: { paddingBottom: 24 },
   fieldGroup: { marginTop: 20, paddingHorizontal: 16 },
   // --- Images ---
   imageRow: { flexDirection: "row", gap: 10 },

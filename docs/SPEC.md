@@ -1,6 +1,8 @@
-# 个人仓库管理系统 — 技术规范文档 (SPEC v3.0)
+# 物匣 — 技术规范文档 (SPEC v3.0)
 
-> 版本：v3.0.0 | 更新：2026-06-15 | 基于 PRD v3.0 编写
+> 版本：v3.0.0 | 更新：2026-07-17 | 基于 PRD v3.0 编写
+>
+> 品牌用语（与 PRD / UI 对齐）：**物匣**（产品）/ **匣中**（列表）/ **匣物**（单件）/ **匣主**（使用者）/ **匣灵**（AI）/ **入匣·改匣**（增改操作）。代码路由与类型名仍用 `items` / `Item` / `profile`。
 
 ---
 
@@ -143,11 +145,11 @@
 |------|------|------|--------|------|
 | version | number | ✅ | 1 | 数据格式版本号，用于未来迁移 |
 | lastModified | ISO 8601 | ✅ | now() | 文件最后修改时间，用于同步对比 |
-| profile | Profile | ✅ | — | 用户个人资料 |
+| profile | Profile | ✅ | — | 匣主资料 |
 | categories | Category[] | ✅ | [] | 分类列表 |
-| items | Item[] | ✅ | [] | 物品列表 |
+| items | Item[] | ✅ | [] | 匣中列表（匣物） |
 
-#### 2.2.2 Profile (个人资料)
+#### 2.2.2 Profile (匣主资料)
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
@@ -177,12 +179,12 @@
 | type | "text" \| "number" \| "date" | ✅ | — | 字段值类型 |
 | sortOrder | number | ❌ | auto | 排序序号 |
 
-#### 2.2.5 Item (物品)
+#### 2.2.5 Item (匣物)
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | id | UUID v4 | ✅ | auto | 主键 |
-| name | string | ✅ | — | 物品名称 |
+| name | string | ✅ | — | 匣物名称 |
 | categoryId | string \| null | ❌ | null | 关联分类 ID (FK → Category.id) |
 | brand | string \| null | ❌ | null | 品牌 |
 | purchaseDate | string \| null | ❌ | null | 购买日期 (YYYY-MM-DD) |
@@ -191,7 +193,7 @@
 | storeName | string \| null | ❌ | null | 店铺名称 |
 | location | string \| null | ❌ | null | 存放位置 |
 | quantity | number | ❌ | 1 | 数量 |
-| status | string | ❌ | "使用中" | 物品状态枚举值 |
+| status | string | ❌ | "使用中" | 匣物状态枚举值 |
 | notes | string \| null | ❌ | null | 备注 |
 | images | string[] | ❌ | [] | 图片文件路径数组 |
 | customValues | Record<string,string> | ❌ | {} | 自定义字段值 (key=CustomField.id) |
@@ -200,7 +202,7 @@
 
 #### 2.2.6 枚举值定义
 
-**物品状态 (Item.status)**：
+**匣物状态 (Item.status)**：
 
 | 值 | 含义 | 颜色码 |
 |----|------|--------|
@@ -235,13 +237,13 @@
 |------|----------|------|
 | `warehouse-ocr-settings.json` | `{ apiKey, apiBase, model }` | AI 配置 |
 | `warehouse-sync-settings.json` | `{ syncFolderPath, autoSyncEnabled, syncMode }` | 同步配置 |
-| `images/*.{jpg,png,webp}` | 二进制文件 | 物品图片 |
+| `images/*.{jpg,png,webp}` | 二进制文件 | 匣物图片 |
 
 ### 2.4 数据完整性约束
 
 | 约束 | 说明 |
 |------|------|
-| Item.categoryId → Category.id | 软外键：删除分类时清空关联物品的 categoryId，不级联删除 |
+| Item.categoryId → Category.id | 软外键：删除分类时清空关联匣物的 categoryId，不级联删除 |
 | customValues key → CustomField.id | 软外键：切换分类时清空 customValues |
 | Item.images[] | 路径必须指向 documentDirectory/images/ 下的持久化文件 |
 | lastModified | 每次写盘自动更新，用于同步时间戳比较 |
@@ -262,20 +264,20 @@
 
 ### A 层 — 内部数据 API (Repository Layer)
 
-#### A.1 物品 (Items)
+#### A.1 匣物 (Items)
 
 ```
 ┌──────────┬──────────┬──────────────────────────────────┐
 │  方法     │  路径     │  说明                            │
 ├──────────┼──────────┼──────────────────────────────────┤
-│  LIST    │ /items   │ 获取物品列表（按创建时间倒序）       │
-│  GET     │ /items/:id│ 获取物品详情（含分类信息）          │
-│  CREATE  │ /items   │ 创建物品                          │
-│  UPDATE  │ /items/:id│ 更新物品（部分更新）               │
-│  DELETE  │ /items/:id│ 删除物品（含关联图片清理）          │
+│  LIST    │ /items   │ 获取匣中列表（按创建时间倒序）       │
+│  GET     │ /items/:id│ 获取匣物详情（含分类信息）          │
+│  CREATE  │ /items   │ 入匣                              │
+│  UPDATE  │ /items/:id│ 改匣（部分更新）                   │
+│  DELETE  │ /items/:id│ 移出物匣（含关联图片清理）          │
 │  SEARCH  │ /items/search?q=&categoryId=&status= │ 搜索  │
 │  STATS   │ /items/stats │ 获取统计数据                   │
-│  IDLE    │ /items/idle?days=30 │ 获取闲置物品列表         │
+│  IDLE    │ /items/idle?days=30 │ 获取闲置匣物列表         │
 └──────────┴──────────┴──────────────────────────────────┘
 ```
 
@@ -338,7 +340,7 @@
 **STATS /items/stats**
 ```
 返回: {
-  total: number;       // 物品总数
+  total: number;       // 匣中件数
   totalValue: number;  // 总价值 (元)
   idle: number;        // 闲置中数量
   idleOverdue: number; // 超过提醒阈值的闲置数
@@ -361,8 +363,8 @@
 │  LIST    │ /categories      │ 获取分类列表（按 sortOrder）  │
 │  CREATE  │ /categories      │ 创建分类（含 customFields）   │
 │  UPDATE  │ /categories/:id  │ 更新分类                     │
-│  DELETE  │ /categories/:id  │ 删除分类（清空物品关联）       │
-│  ITEMS   │ /categories/:id/items │ 获取分类下物品列表      │
+│  DELETE  │ /categories/:id  │ 删除分类（清空匣物关联）       │
+│  ITEMS   │ /categories/:id/items │ 获取分类下匣中列表      │
 └──────────┴──────────────────┴───────────────────────────┘
 ```
 
@@ -396,22 +398,22 @@
 **DELETE /categories/:id**
 ```
 返回: void
-副作用: 将关联物品的 categoryId 置为 null（不删除物品）
+副作用: 将关联匣物的 categoryId 置为 null（不删除匣物）
 ```
 
 **ITEMS /categories/:id/items**
 ```
-返回: ItemSummary[]  (该分类下物品，createdAt DESC)
+返回: ItemSummary[]  (该分类下匣物，createdAt DESC)
 ```
 
-#### A.3 个人资料 (Profile)
+#### A.3 匣主资料 (Profile)
 
 ```
 ┌──────────┬───────────┬────────────┐
 │  方法     │  路径      │  说明       │
 ├──────────┼───────────┼────────────┤
-│  GET     │ /profile  │ 获取个人资料 │
-│  UPDATE  │ /profile  │ 更新个人资料 │
+│  GET     │ /profile  │ 获取匣主资料 │
+│  UPDATE  │ /profile  │ 更新匣主资料 │
 └──────────┴───────────┴────────────┘
 ```
 
@@ -564,7 +566,7 @@
 
 ### B 层 — 外部服务 API
 
-#### B.1 AI 问答 (Chat Completions)
+#### B.1 匣灵问答 (Chat Completions)
 
 ```
 POST {apiBase}/chat/completions
@@ -577,7 +579,7 @@ Authorization: Bearer {apiKey}
   model: string;                    // 默认 "gpt-4o"
   messages: [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "system", content: "当前用户的物品数据如下：\n```json\n{context}\n```" },
+    { role: "system", content: "当前匣主的匣中数据如下：\n```json\n{context}\n```" },
     ...history,                     // { role: "user"|"assistant", content: string }
     { role: "user", content: question }
   ];
@@ -591,16 +593,16 @@ Authorization: Bearer {apiKey}
 }
 ```
 
-**SYSTEM_PROMPT 摘要**：你是一个个人仓库管理助手。用户会向你询问关于ta物品仓库中的各种问题。回答规则：中文、友好简洁、金额加¥、列举时"物品名 - 分类 - 价格"格式、排名类列Top5、无法回答时坦诚告知。
+**SYSTEM_PROMPT 摘要**：你是物匣中的 AI 助手「匣灵」。匣主会向你询问关于ta物匣、匣中之物的各种问题。回答规则：中文、友好简洁、金额加¥、列举时「名称 - 分类 - 价格」格式、排名类列Top5、无法回答时坦诚告知。
 
 **context 构建逻辑**：
 ```typescript
 {
   统计: {
-    物品总数, 闲置中, 使用中, 总价值,
-    分类列表: [{ 名称, 图标, 物品数 }]
+    匣中件数, 闲置中, 使用中, 总价值,
+    分类列表: [{ 名称, 图标, 匣物数 }]
   },
-  物品列表: [{
+  匣中列表: [{
     名称, 分类, 品牌, 价格, 平台, 店铺, 位置, 数量, 状态, 备注, 购买日期
   }]
 }
@@ -651,35 +653,35 @@ Authorization: Bearer {apiKey}
 ### 4.1 推荐结构
 
 ```
-warehouse-app/
+apps/mobile/
 │
 ├── app/                              # expo-router 文件路由（页面层）
 │   ├── _layout.tsx                   # 根布局 (SafeAreaProvider + UpdateBanner + Stack)
 │   ├── index.tsx                     # 入口 → 重定向 /items
 │   └── (tabs)/
-│       ├── _layout.tsx               # 底部 Tab 导航 (4 tabs)
-│       ├── items/                    # 📦 物品模块
+│       ├── _layout.tsx               # 底部 Tab 导航（匣中 / 分类 / 搜索 / 匣主）
+│       ├── items/                    # 📦 匣中模块（路由名 items）
 │       │   ├── _layout.tsx           # Stack navigator
-│       │   ├── index.tsx             # 物品列表页
-│       │   ├── add.tsx               # 添加物品页
-│       │   ├── [id].tsx              # 物品详情页
-│       │   ├── edit/[id].tsx         # 编辑物品页
-│       │   ├── ocr-import.tsx        # OCR 截图导入页
-│       │   ├── file-import.tsx       # 文件批量导入页
-│       │   └── idle.tsx              # 闲置物品列表页
+│       │   ├── index.tsx             # 匣中列表页
+│       │   ├── add.tsx               # 入匣页
+│       │   ├── [id].tsx              # 匣物详情页
+│       │   ├── edit/[id].tsx         # 改匣页
+│       │   ├── ocr-import.tsx        # OCR 截图入匣页
+│       │   ├── file-import.tsx       # 文件批量入匣页
+│       │   └── idle.tsx              # 闲置匣物列表页
 │       ├── categories/               # 🏷️ 分类模块
 │       │   ├── _layout.tsx
 │       │   ├── index.tsx             # 分类网格页
-│       │   └── [id].tsx              # 分类下物品列表页
+│       │   └── [id].tsx              # 分类下匣中列表页
 │       ├── search/                   # 🔍 搜索模块
 │       │   ├── _layout.tsx
 │       │   ├── index.tsx             # 搜索筛选页
-│       │   └── qa.tsx                # AI 问答页
-│       └── profile/                  # 👤 个人中心
+│       │   └── qa.tsx                # 匣灵问答页
+│       └── profile/                  # 👤 匣主（路由名 profile）
 │           ├── _layout.tsx
-│           ├── index.tsx             # 个人中心主页
-│           ├── edit.tsx              # 编辑资料页
-│           └── stats.tsx             # 数据统计页
+│           ├── index.tsx             # 匣主主页
+│           ├── edit.tsx              # 匣主资料页
+│           └── stats.tsx             # 物匣统计页
 │
 ├── src/                              # 业务逻辑层（非 UI）
 │   ├── types.ts                      # 全局类型定义
@@ -692,32 +694,32 @@ warehouse-app/
 │   │   └── reminderSettings.ts       # 闲置提醒设置
 │   │
 │   ├── repositories/                 # 数据仓储层 (Repository Pattern)
-│   │   ├── itemRepository.ts         # 物品 CRUD + 搜索 + 统计 + 闲置检测
+│   │   ├── itemRepository.ts         # 匣物 CRUD + 搜索 + 统计 + 闲置检测
 │   │   ├── categoryRepository.ts     # 分类 CRUD
-│   │   └── profileRepository.ts      # 个人资料读写
+│   │   └── profileRepository.ts      # 匣主资料读写
 │   │
 │   ├── ocr/                          # 数据导入服务
 │   │   ├── ocrService.ts             # AI 视觉识别 + API 配置
 │   │   └── fileImportService.ts      # CSV/Excel 解析 + 列名映射
 │   │
 │   ├── ai/                           # AI 服务
-│   │   └── qaService.ts              # 智能问答 (LLM 对话)
+│   │   └── qaService.ts              # 匣灵问答 (LLM 对话)
 │   │
 │   └── updates/                      # 更新服务
 │       └── useAppUpdates.ts          # expo-updates Hook
 │
 ├── components/                       # 可复用 UI 组件
-│   ├── ItemForm.tsx                  # 物品表单 (核心复合组件)
-│   ├── ItemCard.tsx                  # 物品列表卡片
+│   ├── ItemForm.tsx                  # 匣物表单 (核心复合组件)
+│   ├── ItemCard.tsx                  # 匣中列表卡片
 │   ├── CategorySheet.tsx             # 分类编辑 BottomSheet
 │   ├── CategoryChip.tsx              # 分类标签
 │   ├── CategoryBarChart.tsx          # 横向柱状图
 │   ├── MonthlySpendingChart.tsx      # 月度消费趋势图
-│   ├── ProfileHeader.tsx             # 个人资料头部 + 等级系统
+│   ├── ProfileHeader.tsx             # 匣主头部 + 匣主等级
 │   ├── StatsRow.tsx                  # 统计数字行
 │   ├── StatCard.tsx                  # 单个统计卡片
 │   ├── StatusBadge.tsx               # 状态标签
-│   ├── SearchBar.tsx                 # 搜索输入框
+│   ├── SearchBar.tsx                 # 寻觅输入框
 │   ├── DatePickerModal.tsx           # 日期选择器
 │   ├── AiSettingsCard.tsx            # AI 配置卡片
 │   ├── SyncSettingsCard.tsx          # 同步设置卡片
@@ -779,7 +781,7 @@ warehouse-app/
 │  src/ocr/ src/ai/  External Services  外部服务       │
 │  ─────────────────────────────────────────────────  │
 │  • OCR 识别 + CSV 解析                               │
-│  • AI 问答                                           │
+│  • 匣灵问答                                         │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -810,7 +812,7 @@ warehouse-app/
                                               │  Custom     │
 ┌──────────────┐     ┌──────────────────┐     │  API        │
 │   QA Page    │────▶│   qaService.ts    │────▶│             │
-│  (AI 问答)   │     │  (Chat API)       │     │             │
+│  (匣灵问答) │     │  (Chat API)       │     │             │
 └──────────────┘     └──────────────────┘     └─────────────┘
                            │
                     ┌──────┴──────┐
@@ -842,7 +844,7 @@ interface OcrSettings {
 
 | 错误类型 | 处理方式 |
 |----------|----------|
-| API Key 未配置 | 提示"请先在「我的」页面配置 AI 接口" |
+| API Key 未配置 | 提示「请先在设置中配置 AI 接口」 |
 | 网络错误 | 显示原始错误信息（截断至 200 字符） |
 | HTTP 非 200 | 显示 `AI 请求失败 ({status}): {body前200字符}` |
 | OCR JSON 解析失败 | 显示 `无法解析识别结果: {content前200字符}` |
@@ -858,7 +860,7 @@ interface OcrSettings {
 |------|------|
 | 数据存储 | 本地文件系统，不传输到任何第三方服务器 |
 | API Key | 明文存储于本地 `warehouse-ocr-settings.json`；UI 输入框使用 `secureTextEntry` |
-| 数据传输 | AI 调用使用 HTTPS；仓库数据仅在用户主动提问时作为上下文发送给 LLM |
+| 数据传输 | AI 调用使用 HTTPS；物匣数据仅在匣主主动提问时作为上下文发送给 LLM |
 | 同步文件 | 依赖云盘软件自身的加密传输；App 不做额外加密 |
 
 ### 6.2 Android 权限
@@ -873,7 +875,7 @@ RECORD_AUDIO             — (预留，当前未使用)
 ### 6.3 隐私说明
 
 - 所有数据存储在设备本地，不上传至任何云端数据库
-- AI 调用时仓库数据作为上下文发送，用户应知晓此行为
+- AI 调用时物匣数据作为上下文发送，匣主应知晓此行为
 - JSON 文件明文存储，用户可随时查看、备份、删除
 
 ---
@@ -915,7 +917,7 @@ production  ──▶ 正式版本，推送 OTA 到 production channel
 |------|-----|
 | App 版本 | 1.0.0 (app.json version) |
 | 功能版本 | v3.0.0 (CHANGELOG 语义化版本) |
-| Android 包名 | com.sjc.warehouse |
+| Android 包名 | com.sjc.wuxia |
 | Expo Project ID | 950b0259-57d0-4392-aaa1-05a181d1567f |
 | Runtime Version | appVersion (跟随 app.json version) |
 
@@ -970,5 +972,5 @@ Page (app/)  ──调用──▶  Repository (src/repositories/)
 
 ---
 
-> 本文档基于实际代码 `warehouse-app/` 编写，所有接口签名、类型定义、文件路径均与源码一致。
+> 本文档基于实际代码 `apps/mobile/` 编写，所有接口签名、类型定义、文件路径均与源码一致。
 > 最后验证时间：2026-06-15

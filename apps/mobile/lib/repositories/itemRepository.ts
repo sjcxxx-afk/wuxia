@@ -2,6 +2,7 @@
 import { triggerAutoExport } from "../storage/syncService";
 import { deleteImages } from "../storage/imageStore";
 import { getReminderSettings } from "../storage/reminderSettings";
+import { generateAndSaveItemReview } from "../ai/itemReviewService";
 import type {
   Item,
   ItemSummary,
@@ -27,6 +28,8 @@ function toItem(raw: any, data: any): Item {
     notes: raw.notes ?? null,
     images: raw.images ?? [],
     customValues: raw.customValues ?? {},
+    aiComment: raw.aiComment ?? null,
+    aiCommentAt: raw.aiCommentAt ?? null,
     category: cat ? { id: cat.id, name: cat.name } : null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
@@ -104,12 +107,15 @@ export const itemRepository = {
           notes: input.notes ?? null,
           images: input.images ?? [],
           customValues: input.customValues ?? {},
+          aiComment: null,
+          aiCommentAt: null,
           createdAt: now,
           updatedAt: now,
         },
       ],
     }));
     triggerAutoExport();
+    void generateAndSaveItemReview(id);
     return id;
   },
 
@@ -118,7 +124,12 @@ export const itemRepository = {
       ...data,
       items: data.items.map((item) => {
         if (item.id !== id) return item;
-        const updated: any = { ...item, updatedAt: nowISO() };
+        const updated: any = {
+          ...item,
+          updatedAt: nowISO(),
+          aiComment: null,
+          aiCommentAt: null,
+        };
         if (input.name !== undefined) updated.name = input.name;
         if (input.categoryId !== undefined) updated.categoryId = input.categoryId;
         if (input.brand !== undefined) updated.brand = input.brand;
@@ -134,6 +145,19 @@ export const itemRepository = {
         if (input.customValues !== undefined) updated.customValues = input.customValues;
         return updated;
       }),
+    }));
+    triggerAutoExport();
+    void generateAndSaveItemReview(id);
+  },
+
+  async setAiComment(id: string, comment: string): Promise<void> {
+    updateData((data) => ({
+      ...data,
+      items: data.items.map((item) =>
+        item.id === id
+          ? { ...item, aiComment: comment, aiCommentAt: nowISO() }
+          : item
+      ),
     }));
     triggerAutoExport();
   },

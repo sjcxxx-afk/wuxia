@@ -13,14 +13,17 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-import { recognizeOrderScreenshot, OcrResult } from "../../../lib/ocr/ocrService";
+import {
+  recognizeOrderScreenshot,
+  OcrResult,
+  type RecognizeProgress,
+} from "../../../lib/ocr/ocrService";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
 
 export default function OcrImport() {
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progressStage, setProgressStage] = useState<RecognizeProgress | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<OcrResult | null>(null);
   const [editing, setEditing] = useState(false);
@@ -35,32 +38,32 @@ export default function OcrImport() {
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.8,
-      base64: true,
     });
 
     if (!pickerResult.canceled && pickerResult.assets[0]) {
       const asset = pickerResult.assets[0];
       setImageUri(asset.uri);
-      setImageBase64(asset.base64 ?? null);
       setResult(null);
       setEditing(false);
+      setProgressStage(null);
     }
   };
 
   const handleRecognize = async () => {
-    if (!imageBase64) {
+    if (!imageUri) {
       Alert.alert("提示", "请先选择图片");
       return;
     }
     setLoading(true);
+    setProgressStage("extracting");
     try {
-      const mimeType = imageUri?.endsWith(".png") ? "image/png" : "image/jpeg";
-      const ocrResult = await recognizeOrderScreenshot(imageBase64, mimeType);
+      const ocrResult = await recognizeOrderScreenshot(imageUri, setProgressStage);
       setResult(ocrResult);
     } catch (err: any) {
       Alert.alert("识别失败", err.message || "未知错误");
     } finally {
       setLoading(false);
+      setProgressStage(null);
     }
   };
 
@@ -83,12 +86,11 @@ export default function OcrImport() {
             images: [],
             customValues: {},
           });
-      Alert.alert("导入成功", `已添加「${result.name}」`, [
+      Alert.alert("导入成功", `「${result.name}」已入匣`, [
         { text: "继续识别", style: "cancel" },
         { text: "返回列表", onPress: () => router.back() },
       ]);
       setImageUri(null);
-      setImageBase64(null);
       setResult(null);
     } catch (err: any) {
       Alert.alert("保存失败", err.message);
@@ -137,7 +139,14 @@ export default function OcrImport() {
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <>
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <Text style={styles.recognizeBtnText}>
+                      {progressStage === "parsing"
+                        ? "AI 解析中…"
+                        : "正在提取文字…"}
+                    </Text>
+                  </>
                 ) : (
                   <>
                     <Ionicons name="sparkles" size={20} color="#FFFFFF" />

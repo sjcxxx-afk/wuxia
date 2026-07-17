@@ -22,6 +22,8 @@ export type Item = {
   notes: string | null;
   images: string[];
   customValues: Record<string, string>;
+  aiComment: string | null;
+  aiCommentAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

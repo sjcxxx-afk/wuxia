@@ -23,7 +23,7 @@ export default function IdleReminderBanner({ count, thresholdDays }: Props) {
         </View>
         <View style={styles.textBox}>
           <Text style={styles.title}>
-            {count} 件物品闲置超过 {thresholdDays} 天
+            {count} 件匣物闲置超过 {thresholdDays} 天
           </Text>
           <Text style={styles.subtitle}>点击查看，也许该处理一下了</Text>
         </View>
@@ -35,7 +35,7 @@ export default function IdleReminderBanner({ count, thresholdDays }: Props) {
         style={styles.action}
         onPress={() => router.push("/(tabs)/items/idle")}
       >
-        <Text style={styles.actionText}>查看闲置物品</Text>
+        <Text style={styles.actionText}>查看闲置匣物</Text>
         <Ionicons name="chevron-forward" size={16} color="#D97706" />
       </TouchableOpacity>
     </View>
