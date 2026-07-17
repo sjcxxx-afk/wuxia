@@ -16,8 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { profileRepository } from "../../../lib/repositories/profileRepository";
 
-const isWeb = Platform.OS === "web";
-
 export default function EditProfile() {
   const [nickname, setNickname] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -31,22 +29,6 @@ export default function EditProfile() {
   }, []);
 
   const handlePickAvatar = async () => {
-    if (isWeb) {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "image/*";
-      input.onchange = (e: any) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => setAvatarUrl(reader.result as string);
-        reader.readAsDataURL(file);
-      };
-      input.click();
-      return;
-    }
-
-    // Native: use expo-image-picker
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert("需要权限", "请在设置中允许访问相册");

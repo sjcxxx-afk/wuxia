@@ -5,6 +5,8 @@
  * 复用 OCR 设置中的 AI 配置（供应商、API Key、Base、模型）。
  */
 
+import { buildQaSystemPrompt, stripMarkdown } from "./personality";
+import { buildInsightsJson } from "./warehouseInsights";
 import { getOcrSettingsAsync } from "../ocr/ocrService";
 import { loadData } from "../storage/jsonStore";
 
@@ -12,24 +14,6 @@ export interface QaMessage {
   role: "user" | "assistant";
   content: string;
 }
-
-const SYSTEM_PROMPT = `你是物匣中的 AI 助手“匣灵”。匣主会向你询问关于ta物匣、匣中之物的各种问题。
-
-我会把匣主的匣中数据以 JSON 格式提供给你。请根据这些数据回答问题。
-
-回答规则：
-- 用中文回答，语气友好简洁，可自然使用「物匣」「匣中」「匣物」等说法
-- 如果数据不足以回答问题，坦诚告知
-- 涉及到金额时，加上 ¥ 符号
-- 列举匣物时，每行一个，格式为"名称 - 分类 - 价格"
-- 如果用户问"最贵""最多"等排名类问题，列出 Top 5
-- 用户问总数/总价值时，直接给出数字
-
-你可以回答的问题类型：
-- 统计类：匣中件数、总价值、闲置数量、各分类数量
-- 查询类：某件匣物在哪里、某个品牌有哪些、某平台买了什么
-- 排名类：最贵的匣物、最多的分类、最近购买的
-- 汇总类：本月/今年花了多少钱、各平台花费对比`;
 
 /**
  * 构建物品数据的精简上下文
@@ -82,11 +66,24 @@ export async function askQuestion(
     throw new Error("请先在设置中配置 AI 接口");
   }
 
+  const data = await loadData();
   const context = await buildContext();
+  const insights = buildInsightsJson(data);
+  const systemPrompt = buildQaSystemPrompt(
+    settings.personalityPreset,
+    settings.personalityCustom
+  );
 
   const messages: { role: string; content: string }[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "system", content: `当前匣主的匣中数据如下（JSON 格式）：\n\`\`\`json\n${context}\n\`\`\`` },
+    { role: "system", content: systemPrompt },
+    {
+      role: "system",
+      content: `当前匣主的匣中数据如下（JSON 格式）：\n\`\`\`json\n${context}\n\`\`\``,
+    },
+    {
+      role: "system",
+      content: `以下是由匣中数据本地预计算的准确结果，回答排名/统计/平台花费等问题时必须优先引用，不得与其中数字矛盾：\n\`\`\`json\n${insights}\n\`\`\``,
+    },
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ];
 
@@ -109,7 +106,7 @@ export async function askQuestion(
     throw new Error(`AI 请求失败 (${response.status}): ${err.slice(0, 200)}`);
   }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "抱歉，未能获取回答。";
-  return content.trim();
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content || "抱歉，未能获取回答。";
+  return stripMarkdown(content.trim());
 }

@@ -17,6 +17,7 @@
 
 - Expo SDK 55，参考文档 https://docs.expo.dev/versions/v55.0.0/
 - React Native 0.83，TypeScript 严格模式
+- **部署目标：手机 App（Android / iOS）；不支持 Web，勿添加 Web 依赖或 `expo start --web` 相关配置**
 - 数据存储基于 JSON 文件（expo-file-system），无数据库依赖
 
 ## 编码约定

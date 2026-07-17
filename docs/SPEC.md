@@ -22,8 +22,11 @@
 
 ### 1.1 总体架构
 
+> **部署范围**：手机 App（Android 为主，iOS 可构建）。通过 EAS Build 产出安装包，配合 expo-updates 做 OTA。**不支持、不规划 Web / 浏览器端。**
+
 ```
 ┌──────────────────────────────────────────┐
+│   Mobile App (Android / iOS)              │
 │              Presentation Layer           │
 │   React Native 0.85 + Expo SDK 56         │
 │   expo-router (file-based navigation)     │
@@ -43,7 +46,7 @@
 
 | 类别 | 技术 | 版本 | 选型理由 |
 |------|------|------|----------|
-| **框架** | React Native | 0.85.3 | 跨平台移动端首选，单套代码覆盖 Android/iOS/Web；活跃社区 + Meta 官方维护 |
+| **框架** | React Native | 0.85.3 | 手机 App 首选，单套代码覆盖 Android / iOS；活跃社区 + Meta 官方维护。本项目仅部署手机端，不包含 Web |
 | **工具链** | Expo SDK | 56 | 免原生配置的开发体验；托管构建 (EAS)、OTA 更新、插件生态；大幅降低 RN 入门门槛 |
 | **路由** | expo-router | 56.2 | 文件系统路由（类 Next.js），约定优于配置；支持 Stack/Tabs 嵌套、动态路由、深层链接 |
 | **语言** | TypeScript | 6.0 | 静态类型检查，减少运行时错误；完善的 IDE 智能提示 |
@@ -63,6 +66,7 @@
 | **MMKV** | 高性能 KV 存储，但同样不支持文件级导出；对当前场景过度设计 |
 | **Redux / Zustand** | 当前数据流简单（load → cache → update → save），全局状态管理加重复杂度；React 本地 state + useFocusEffect 已足够 |
 | **Supabase / Firebase** | v1 曾用 Supabase，v2 移除。产品定位是"无需登录、数据本地"，云端依赖与此冲突 |
+| **Expo Web / react-native-web** | 产品定位为手机 App 安装包分发；本地文件存储、相册、OCR 等能力以原生端为准，不维护浏览器端 |
 
 ### 1.4 架构决策记录 (ADR)
 
@@ -576,10 +580,11 @@ Authorization: Bearer {apiKey}
 
 ```typescript
 请求体: {
-  model: string;                    // 默认 "gpt-4o"
+  model: string;                    // 默认 "gpt-4o-mini"
   messages: [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: SYSTEM_PROMPT },  // 角色 + 性格 + 输出规则
     { role: "system", content: "当前匣主的匣中数据如下：\n```json\n{context}\n```" },
+    { role: "system", content: "本地预计算结果：\n```json\n{insights}\n```" },
     ...history,                     // { role: "user"|"assistant", content: string }
     { role: "user", content: question }
   ];
@@ -589,11 +594,34 @@ Authorization: Bearer {apiKey}
 
 返回: {
   choices: [{ message: { content: string } }];
-  // 其他字段忽略
+  // 前端 stripMarkdown 兜底去除残留 markdown
 }
 ```
 
-**SYSTEM_PROMPT 摘要**：你是物匣中的 AI 助手「匣灵」。匣主会向你询问关于ta物匣、匣中之物的各种问题。回答规则：中文、友好简洁、金额加¥、列举时「名称 - 分类 - 价格」格式、排名类列Top5、无法回答时坦诚告知。
+**SYSTEM_PROMPT 组成**（`lib/ai/personality.ts`）：
+- 角色定位：匣灵是有温度、帮匣主管理物匣的伙伴
+- 性格片段：由 `OcrSettings.personalityPreset` 决定（温暖 / 可靠 / 高冷 / 自定义）
+- 共享输出规则：纯文本、禁止 markdown、排名类直接列出禁止反问、金额加 ¥
+
+**OcrSettings 性格相关字段**（`warehouse-ocr-settings.json`）：
+```typescript
+{
+  personalityPreset: "warm" | "reliable" | "cool" | "custom";  // 默认 warm
+  personalityCustom: string;   // 最多 200 字，preset 为 custom 时使用
+  itemReviewFollowPersonality: boolean;  // 匣物评价是否跟随性格，默认 true
+}
+```
+
+**insights 预计算逻辑**（`lib/ai/warehouseInsights.ts`）：
+```typescript
+{
+  最贵匣物: [{ 名称, 分类, 价格, 平台 }],   // Top 5，价格降序
+  最近购买: [{ 名称, 分类, 价格, 购买日期 }], // Top 5，日期降序，无日期排后
+  平台花费: [{ 平台, 总金额, 件数 }],         // 金额降序
+  闲置匣物: [{ 名称, 分类, 价格 }],
+  分类统计: [{ 名称, 件数, 总金额 }]
+}
+```
 
 **context 构建逻辑**：
 ```typescript
@@ -703,7 +731,10 @@ apps/mobile/
 │   │   └── fileImportService.ts      # CSV/Excel 解析 + 列名映射
 │   │
 │   ├── ai/                           # AI 服务
-│   │   └── qaService.ts              # 匣灵问答 (LLM 对话)
+│   │   ├── qaService.ts              # 匣灵问答 (LLM 对话)
+│   │   ├── personality.ts            # 匣灵性格预设与输出规则
+│   │   ├── warehouseInsights.ts      # 匣中数据本地预计算
+│   │   └── itemReviewService.ts      # 匣物 AI 评价
 │   │
 │   └── updates/                      # 更新服务
 │       └── useAppUpdates.ts          # expo-updates Hook
@@ -880,12 +911,14 @@ RECORD_AUDIO             — (预留，当前未使用)
 
 ---
 
-## 七、构建与部署
+## 七、构建与部署（手机 App）
+
+本项目仅构建并部署到手机端（Android APK 为主路径；iOS 按需）。不提供 Web 构建或静态站点发布。
 
 ### 7.1 构建配置
 
 ```json
-// eas.json 构建 profile
+// eas.json 构建 profile（手机安装包）
 {
   "development": { "developmentClient": true, "android": { "buildType": "apk" } },
   "preview":     { "android": { "buildType": "apk" }, "channel": "preview" },
@@ -915,6 +948,7 @@ production  ──▶ 正式版本，推送 OTA 到 production channel
 
 | 属性 | 值 |
 |------|-----|
+| 部署形态 | 手机 App（非 Web） |
 | App 版本 | 1.0.0 (app.json version) |
 | 功能版本 | v3.0.0 (CHANGELOG 语义化版本) |
 | Android 包名 | com.sjc.wuxia |

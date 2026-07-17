@@ -6,17 +6,9 @@
  */
 
 import { getOcrSettingsAsync } from "../ocr/ocrService";
+import { buildItemReviewSystemPrompt, stripMarkdown } from "./personality";
 import { loadData, updateData, nowISO } from "../storage/jsonStore";
 import { triggerAutoExport } from "../storage/syncService";
-
-const SYSTEM_PROMPT = `你是物匣中的 AI 助手"匣灵"。匣主会提供一件匣物的详细信息，请给出简短评价。
-
-评价要求：
-- 用中文，1-2 句话，不超过 60 字
-- 从性价比、实用性、是否值得留存等维度择要点评
-- 语气友好客观，像朋友给建议
-- 信息不足时坦诚说明，不要编造匣物不存在的信息
-- 不要加标题、引号或 markdown，直接输出评价正文`;
 
 function buildItemContext(
   item: {
@@ -60,9 +52,30 @@ export async function generateAndSaveItemReview(itemId: string): Promise<void> {
 
     const cat = data.categories.find((c) => c.id === raw.categoryId);
     const context = buildItemContext(raw, cat?.name ?? null);
+    const systemPrompt = buildItemReviewSystemPrompt(
+      settings.itemReviewFollowPersonality,
+      settings.personalityPreset,
+      settings.personalityCustom
+    );
+
+    // DeepSeek V4 默认开启 thinking，推理与正文共用 max_tokens；
+    // 原先 max_tokens=60 会被推理占满，content 为空后静默失败。
+    // 短评价关闭 thinking，并给足输出额度（非 DeepSeek 会忽略 thinking 字段）。
+    const requestBody: Record<string, unknown> = {
+      model: settings.model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `请评价以下匣物：\n${context}` },
+      ],
+      max_tokens: 512,
+      temperature: 0.3,
+    };
+    if (settings.apiBase.includes("deepseek")) {
+      requestBody.thinking = { type: "disabled" };
+    }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     const response = await fetch(`${settings.apiBase}/chat/completions`, {
       method: "POST",
       headers: {
@@ -70,15 +83,7 @@ export async function generateAndSaveItemReview(itemId: string): Promise<void> {
         Authorization: `Bearer ${settings.apiKey}`,
       },
       signal: controller.signal,
-      body: JSON.stringify({
-        model: settings.model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `请评价以下匣物：\n${context}` },
-        ],
-        max_tokens: 60,
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(requestBody),
     });
     clearTimeout(timeout);
 
@@ -88,11 +93,13 @@ export async function generateAndSaveItemReview(itemId: string): Promise<void> {
     const content = result.choices?.[0]?.message?.content?.trim();
     if (!content) return;
 
+    const review = stripMarkdown(content);
+
     updateData((data) => ({
       ...data,
       items: data.items.map((item) =>
         item.id === itemId
-          ? { ...item, aiComment: content, aiCommentAt: nowISO() }
+          ? { ...item, aiComment: review, aiCommentAt: nowISO() }
           : item
       ),
     }));

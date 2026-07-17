@@ -1,13 +1,15 @@
 # 物匣
 
-> 跨平台个人物匣 — 记录、整理和寻觅匣中之物。
+> 手机 App 个人物匣 — 记录、整理和寻觅匣中之物。
 
 品牌用语：**物匣** / **匣中** / **匣灵** / **匣主**（入匣 · 改匣）。
+
+**部署形态**：原生手机 App（Android 为主，iOS 可构建），经 EAS Build 安装到设备。**不支持 Web / 浏览器端。**
 
 ## 项目结构
 
 ```
-├── apps/mobile/      ← 移动端应用 (Expo + React Native)
+├── apps/mobile/      ← 手机 App（Expo + React Native）
 ├── docs/             ← 项目文档
 │   ├── PRD.md        ← 产品需求文档
 │   └── SPEC.md       ← 技术规范文档
@@ -19,14 +21,17 @@
 ```bash
 cd apps/mobile
 npm install
-npx expo start
+npx expo start                 # 真机扫码或模拟器调试
+npx expo start --android       # 直接跑 Android
+npx eas build -p android --profile preview  # 构建手机 APK
 ```
 
 ## 技术栈
 
-- React Native 0.85 + Expo SDK 56
+- React Native 0.85 + Expo SDK 56（手机 App）
 - expo-router（文件路由） + TypeScript
 - JSON 文件存储（expo-file-system）
+- EAS Build + expo-updates（安装包分发与 OTA）
 
 ## 文档
 

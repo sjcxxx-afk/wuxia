@@ -43,8 +43,9 @@
 
 ## 二、项目定位
 
-跨平台移动端个人物匣，基于 **React Native + Expo**。
+手机 App 个人物匣，基于 **React Native + Expo**，通过 EAS 构建并部署到手机端。
 
+- **部署形态**：原生手机 App（Android 为主，iOS 可构建）；**不包含 Web / 浏览器端**
 - 以「物匣」为核心品牌；匣中收录匣物，匣主打理，匣灵应答
 - 打开即用，无需注册登录
 - 数据 JSON 本地存储，匣主完全掌控
@@ -92,7 +93,6 @@
 | P1 | 数据导出为 Excel | 除 JSON 外支持导出为 .xlsx |
 | P2 | 匣物标签系统 | 自由标签，不受分类限制 |
 | P2 | 批量操作 | 多选编辑/删除/移动分类 |
-| P2 | Web 平台完善 | 优化 Web 端体验（图片上传、文件操作） |
 | P3 | 多物匣支持 | 一户多匣（如：家中物匣 / 公司物匣） |
 | P3 | 社区分享 | 分享匣中收藏到社区 |
 
@@ -112,7 +112,8 @@
 | OTA 更新 | expo-updates |
 | 动画 | react-native-reanimated |
 | 开发语言 | TypeScript 6.0 |
-| 运行平台 | Android（主要）/ iOS / Web |
+| 部署目标 | 手机 App：Android（主要）/ iOS；不支持 Web |
+| 分发方式 | EAS Build 产出 APK / 安装包；OTA（expo-updates） |
 | Android 包名 | com.sjc.wuxia |
 
 ---
@@ -555,31 +556,32 @@ components/
 
 ### 8.3 平台存储差异
 
+本项目仅部署为手机 App，数据落在设备本地文档目录：
+
 | 平台 | documentDirectory 示例 |
 |------|----------------------|
 | Android | `file:///data/user/0/com.sjc.wuxia/files/` |
 | iOS | `file:///var/mobile/Containers/Data/Application/{UUID}/Documents/` |
-| Web | 浏览器 localStorage + IndexedDB |
 
 ---
 
-## 九、运行方式
+## 九、运行与部署（手机 App）
 
 ### 9.1 本地开发
 
 ```bash
 cd apps/mobile
 npm install
-npx expo start          # 启动 Expo 开发服务器
+npx expo start            # 启动 Expo 开发服务器（真机扫码或模拟器）
 npx expo start --android  # 直接启动 Android
-npx expo start --ios      # 直接启动 iOS
-npx expo start --web      # 启动 Web 版
+npx expo start --ios      # 直接启动 iOS（需 macOS）
 ```
 
-### 9.2 构建 APK
+### 9.2 构建手机安装包
 
 ```bash
-npx eas build -p android --profile preview
+npx eas build -p android --profile preview   # Android APK（当前主路径）
+# npx eas build -p ios --profile preview     # iOS（按需）
 ```
 
 ### 9.3 多设备同步

@@ -154,10 +154,6 @@ export default function SyncSettingsCard() {
 
   return (
     <View style={styles.syncCard}>
-      <Text style={styles.syncHint}>
-        将物匣数据文件 warehouse-data.txt 放入云盘同步文件夹，即可多设备流转（兼容旧版 .json）
-      </Text>
-
       {/* Sync folder path */}
       <TouchableOpacity
         style={styles.settingRow}
@@ -296,7 +292,6 @@ const styles = StyleSheet.create({
     borderColor: "#F3F4F6",
     gap: 12,
   },
-  syncHint: { fontSize: 14, color: "#6B7280", textAlign: "center", marginBottom: 4 },
   settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   settingLabel: { fontSize: 14, fontWeight: "600", color: "#374151" },
   settingValue: { fontSize: 13, color: "#4F46E5", maxWidth: 180 },

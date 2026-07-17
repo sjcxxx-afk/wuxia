@@ -1,0 +1,144 @@
+diff --git a/node_modules/@zhanziyang/expo-text-extractor/android/build.gradle b/node_modules/@zhanziyang/expo-text-extractor/android/build.gradle
+index 6a382e5..27fb8e5 100644
+--- a/node_modules/@zhanziyang/expo-text-extractor/android/build.gradle
++++ b/node_modules/@zhanziyang/expo-text-extractor/android/build.gradle
+@@ -7,12 +7,11 @@ def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.ab
+ apply from: expoModulesCorePlugin
+ applyKotlinExpoModulesCorePlugin()
+ useCoreDependencies()
+-useExpoPublishing()
+ 
+ // If you want to use the managed Android SDK versions from expo-modules-core, set this to true.
+ // The Android SDK versions will be bumped from time to time in SDK releases and may introduce breaking changes in your module code.
+ // Most of the time, you may like to manage the Android SDK versions yourself.
+-def useManagedAndroidSdkVersions = false
++def useManagedAndroidSdkVersions = true
+ if (useManagedAndroidSdkVersions) {
+   useDefaultAndroidSdkVersions()
+ } else {
+@@ -41,20 +40,9 @@ android {
+     abortOnError false
+   }
+   dependencies {
+-    // ML Kit Text Recognition v2 - supports multiple scripts
+-    // Latin script (default) - English, Spanish, French, German, Italian, Portuguese, etc.
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.1'
+-    
+-    // Chinese script - Simplified and Traditional Chinese
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1'
+-    
+-    // Devanagari script - Hindi, Sanskrit, Marathi, Nepali, etc.
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition-devanagari:16.0.1'
+-    
+-    // Japanese script - Hiragana, Katakana, Kanji
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition-japanese:16.0.1'
+-    
+-    // Korean script - Hangul
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition-korean:16.0.1'
++    // Bundled models (shipped in APK) — sideloaded / China devices often cannot
++    // download Play Services optional OCR modules on first use.
++    implementation 'com.google.mlkit:text-recognition:16.0.1'
++    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
+   }
+ }
+diff --git a/node_modules/@zhanziyang/expo-text-extractor/android/src/main/java/expo/modules/textextractor/ExpoTextExtractorModule.kt b/node_modules/@zhanziyang/expo-text-extractor/android/src/main/java/expo/modules/textextractor/ExpoTextExtractorModule.kt
+index a676ed9..0f85593 100644
+--- a/node_modules/@zhanziyang/expo-text-extractor/android/src/main/java/expo/modules/textextractor/ExpoTextExtractorModule.kt
++++ b/node_modules/@zhanziyang/expo-text-extractor/android/src/main/java/expo/modules/textextractor/ExpoTextExtractorModule.kt
+@@ -5,9 +5,6 @@ import com.google.mlkit.vision.common.InputImage
+ import com.google.mlkit.vision.text.TextRecognition
+ import com.google.mlkit.vision.text.TextRecognizer
+ import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+-import com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions
+-import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+ import expo.modules.kotlin.Promise
+ import expo.modules.kotlin.exception.CodedException
+@@ -29,22 +26,13 @@ class RecognitionOptionsRecord : Record {
+ }
+ 
+ class ExpoTextExtractorModule : Module() {
+-  // Lazy-initialized recognizers to avoid loading all models at startup
++  // Lazy-initialized recognizers — bundled Chinese + Latin only (order screenshots).
+   private val latinRecognizer by lazy { 
+     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) 
+   }
+   private val chineseRecognizer by lazy { 
+     TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) 
+   }
+-  private val devanagariRecognizer by lazy { 
+-    TextRecognition.getClient(DevanagariTextRecognizerOptions.Builder().build()) 
+-  }
+-  private val japaneseRecognizer by lazy { 
+-    TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()) 
+-  }
+-  private val koreanRecognizer by lazy { 
+-    TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) 
+-  }
+ 
+   /**
+    * Returns the appropriate text recognizer based on the script type.
+@@ -52,23 +40,13 @@ class ExpoTextExtractorModule : Module() {
+   private fun getRecognizerForScript(script: String?): TextRecognizer {
+     return when (script?.lowercase()) {
+       "chinese" -> chineseRecognizer
+-      "devanagari" -> devanagariRecognizer
+-      "japanese" -> japaneseRecognizer
+-      "korean" -> koreanRecognizer
+       else -> latinRecognizer // Default to Latin
+     }
+   }
+ 
+-  /**
+-   * List of available scripts. All are included by default since
+-   * we've added all the dependencies in build.gradle.
+-   */
+   private val availableScripts = listOf(
+     "latin",
+-    "chinese",
+-    "devanagari",
+-    "japanese",
+-    "korean"
++    "chinese"
+   )
+ 
+   override fun definition() = ModuleDefinition {
+@@ -121,29 +99,14 @@ class ExpoTextExtractorModule : Module() {
+     AsyncFunction("getSupportedLanguages") { _: String?, promise: Promise ->
+       promise.resolve(availableScripts)
+     }
+-  }
+ 
+-  /**
+-   * Clean up recognizers when the module is destroyed.
+-   */
+-  override fun onDestroy() {
+-    // Close all initialized recognizers to free resources
+-    try {
+-      latinRecognizer.close()
+-    } catch (_: Exception) {}
+-    try {
+-      chineseRecognizer.close()
+-    } catch (_: Exception) {}
+-    try {
+-      devanagariRecognizer.close()
+-    } catch (_: Exception) {}
+-    try {
+-      japaneseRecognizer.close()
+-    } catch (_: Exception) {}
+-    try {
+-      koreanRecognizer.close()
+-    } catch (_: Exception) {}
+-    
+-    super.onDestroy()
++    OnDestroy {
++      try {
++        latinRecognizer.close()
++      } catch (_: Exception) {}
++      try {
++        chineseRecognizer.close()
++      } catch (_: Exception) {}
++    }
+   }
+ }

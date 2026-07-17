@@ -11,7 +11,12 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getOcrSettings, getOcrSettingsAsync, saveOcrSettings, type OcrSettings } from "../lib/ocr/ocrService";
+import { getOcrSettings, getOcrSettingsAsync, saveOcrSettings, type OcrSettings, type PersonalityPreset } from "../lib/ocr/ocrService";
+import {
+  PERSONALITY_CUSTOM_LABEL,
+  PERSONALITY_LABELS,
+  truncateCustomPersonality,
+} from "../lib/ai/personality";
 
 type AIProvider = "openai" | "deepseek" | "custom";
 
@@ -28,6 +33,13 @@ function getProviderFromSettings(s: OcrSettings): AIProvider {
   return "custom";
 }
 
+const PERSONALITY_OPTIONS: { key: PersonalityPreset; label: string }[] = [
+  { key: "warm", label: PERSONALITY_LABELS.warm },
+  { key: "reliable", label: PERSONALITY_LABELS.reliable },
+  { key: "cool", label: PERSONALITY_LABELS.cool },
+  { key: "custom", label: PERSONALITY_CUSTOM_LABEL },
+];
+
 export default function AiSettingsCard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [provider, setProvider] = useState<AIProvider>(getProviderFromSettings(getOcrSettings()));
@@ -35,12 +47,18 @@ export default function AiSettingsCard() {
   const [apiBase, setApiBase] = useState(getOcrSettings().apiBase);
   const [model, setModel] = useState(getOcrSettings().model);
   const [itemReviewEnabled, setItemReviewEnabled] = useState(false);
+  const [personalityPreset, setPersonalityPreset] = useState<PersonalityPreset>("warm");
+  const [personalityCustom, setPersonalityCustom] = useState("");
+  const [itemReviewFollowPersonality, setItemReviewFollowPersonality] = useState(true);
   const [configured, setConfigured] = useState(false);
 
   // 挂载时异步加载持久化的 AI 配置
   useEffect(() => {
     getOcrSettingsAsync().then((s) => {
       setItemReviewEnabled(s.itemReviewEnabled);
+      setPersonalityPreset(s.personalityPreset);
+      setPersonalityCustom(s.personalityCustom);
+      setItemReviewFollowPersonality(s.itemReviewFollowPersonality);
       if (s.apiKey) {
         setConfigured(true);
         setProvider(getProviderFromSettings(s));
@@ -52,7 +70,15 @@ export default function AiSettingsCard() {
   }, []);
 
   const handleSave = async () => {
-    await saveOcrSettings({ apiKey, apiBase, model, itemReviewEnabled });
+    await saveOcrSettings({
+      apiKey,
+      apiBase,
+      model,
+      itemReviewEnabled,
+      personalityPreset,
+      personalityCustom: truncateCustomPersonality(personalityCustom),
+      itemReviewFollowPersonality,
+    });
     setConfigured(!!apiKey.trim());
     setModalVisible(false);
   };
@@ -64,6 +90,9 @@ export default function AiSettingsCard() {
     setApiBase(s.apiBase);
     setModel(s.model);
     setItemReviewEnabled(s.itemReviewEnabled);
+    setPersonalityPreset(s.personalityPreset);
+    setPersonalityCustom(s.personalityCustom);
+    setItemReviewFollowPersonality(s.itemReviewFollowPersonality);
     setModalVisible(true);
   };
 
@@ -85,11 +114,11 @@ export default function AiSettingsCard() {
             <Ionicons name="sparkles" size={20} color="#4F46E5" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.ocrTitle}>截图识别 AI</Text>
+            <Text style={styles.ocrTitle}>AI 配置</Text>
             <Text style={styles.ocrDesc}>
               {configured
-                ? "本地 OCR + AI 结构化 · 点击修改"
-                : "本地 OCR + AI 结构化 · 点击设置"}
+                ? "匣灵、截图识别与评价 · 点击修改"
+                : "匣灵、截图识别与评价 · 点击设置"}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
@@ -114,7 +143,7 @@ export default function AiSettingsCard() {
               contentContainerStyle={styles.modalScrollContent}
             >
               <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>AI 识别设置</Text>
+                <Text style={styles.modalTitle}>AI 配置</Text>
 
             <Text style={styles.fieldLabel}>供应商</Text>
             <View style={styles.providerRow}>
@@ -166,6 +195,45 @@ export default function AiSettingsCard() {
               autoCapitalize="none"
             />
 
+            <Text style={styles.fieldLabel}>匣灵性格</Text>
+            <View style={styles.personalityRow}>
+              {PERSONALITY_OPTIONS.map((p) => (
+                <TouchableOpacity
+                  key={p.key}
+                  style={[
+                    styles.personalityBtn,
+                    personalityPreset === p.key && styles.personalityBtnActive,
+                  ]}
+                  onPress={() => setPersonalityPreset(p.key)}
+                >
+                  <Text
+                    style={[
+                      styles.personalityBtnText,
+                      personalityPreset === p.key && styles.personalityBtnTextActive,
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {personalityPreset === "custom" && (
+              <>
+                <Text style={styles.fieldLabel}>自定义性格</Text>
+                <TextInput
+                  style={styles.customPersonalityInput}
+                  value={personalityCustom}
+                  onChangeText={setPersonalityCustom}
+                  placeholder="像管家一样称呼我为匣主…"
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  maxLength={200}
+                />
+                <Text style={styles.customHint}>{personalityCustom.length}/200</Text>
+              </>
+            )}
+
             <View style={styles.reviewRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>添加后 AI 评价</Text>
@@ -178,6 +246,21 @@ export default function AiSettingsCard() {
                 onValueChange={setItemReviewEnabled}
                 trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
                 thumbColor={itemReviewEnabled ? "#4F46E5" : "#9CA3AF"}
+              />
+            </View>
+
+            <View style={styles.reviewRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>评价跟随匣灵性格</Text>
+                <Text style={styles.reviewHint}>
+                  关闭后，匣物评价保持客观简短，不受性格影响
+                </Text>
+              </View>
+              <Switch
+                value={itemReviewFollowPersonality}
+                onValueChange={setItemReviewFollowPersonality}
+                trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
+                thumbColor={itemReviewFollowPersonality ? "#4F46E5" : "#9CA3AF"}
               />
             </View>
 
@@ -234,6 +317,31 @@ const styles = StyleSheet.create({
   providerBtnActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
   providerBtnText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
   providerBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
+  personalityRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
+  personalityBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  personalityBtnActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
+  personalityBtnText: { fontSize: 13, color: "#6B7280", fontWeight: "500" },
+  personalityBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
+  customPersonalityInput: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
+    textAlignVertical: "top",
+  },
+  customHint: { fontSize: 12, color: "#9CA3AF", textAlign: "right", marginTop: -8, marginBottom: 16 },
   fieldInput: {
     height: 44,
     borderWidth: 1,

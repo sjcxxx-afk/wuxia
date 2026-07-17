@@ -15,6 +15,9 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askQuestion, QaMessage } from "../../../lib/ai/qaService";
+import { getPersonalityLabel } from "../../../lib/ai/personality";
+import { getOcrSettingsAsync } from "../../../lib/ocr/ocrService";
+import type { PersonalityPreset } from "../../../lib/ocr/ocrService";
 
 const PRESETS = [
   { icon: "📊", label: "物匣概览", question: "给我一个物匣概览，包括总数、总价值和分类分布" },
@@ -30,8 +33,15 @@ export default function QaPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [personalityPreset, setPersonalityPreset] = useState<PersonalityPreset>("warm");
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    getOcrSettingsAsync().then((s) => {
+      setPersonalityPreset(s.personalityPreset);
+    });
+  }, []);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -122,6 +132,11 @@ export default function QaPage() {
             <Text style={styles.welcomeSub}>
               我可以回答关于你物匣、匣中之物的问题{'\n'}试试下面的快捷提问
             </Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
+              <Text style={styles.personalityHint}>
+                当前性格：{getPersonalityLabel(personalityPreset)} · 去匣主修改
+              </Text>
+            </TouchableOpacity>
             <View style={styles.presetsGrid}>
               {PRESETS.map((p, i) => (
                 <TouchableOpacity
@@ -230,7 +245,8 @@ const styles = StyleSheet.create({
   welcome: { alignItems: "center", paddingTop: 32 },
   welcomeIcon: { width: 88, height: 88, borderRadius: 22, marginBottom: 12 },
   welcomeTitle: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 6 },
-  welcomeSub: { fontSize: 14, color: "#9CA3AF", textAlign: "center", lineHeight: 20, marginBottom: 24 },
+  welcomeSub: { fontSize: 14, color: "#9CA3AF", textAlign: "center", lineHeight: 20, marginBottom: 8 },
+  personalityHint: { fontSize: 12, color: "#4F46E5", marginBottom: 24 },
   presetsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, paddingHorizontal: 16 },
   presetChip: {
     flexDirection: "row",

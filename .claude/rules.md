@@ -27,6 +27,7 @@
 ## 环境
 
 - Expo SDK 56，React Native 0.85，TypeScript 6.0
+- **部署目标：手机 App（Android 为主，iOS 可构建）；不支持、不维护 Web 端**
 - 数据存储基于 JSON 文件（expo-file-system），无数据库依赖
 - expo-router 文件路由
 
@@ -39,13 +40,15 @@
 - 组件放在 `components/`，页面逻辑留在 `app/` 中
 - 数据访问通过 `lib/repositories/` 层，页面不直接操作 `lib/storage/`
 - 所有字段属性名使用 camelCase
+- 不要添加 Web 平台配置或依赖（如 `react-dom`、`react-native-web`）
 
 ## 运行命令
 
 ```bash
 cd apps/mobile
-npm install        # 安装依赖
-npx expo start     # 启动开发服务器
-npx expo start --android  # 直接运行 Android
-npx expo start --web      # 运行 Web 版
+npm install                 # 安装依赖
+npx expo start              # 启动开发服务器（扫码用真机/模拟器）
+npx expo start --android    # 直接运行 Android
+npx expo start --ios        # 直接运行 iOS（需 macOS）
+npx eas build -p android --profile preview  # 构建 Android APK
 ```

@@ -5,7 +5,10 @@
  */
 
 import * as FileSystem from "expo-file-system/legacy";
+import type { PersonalityPreset } from "../ai/personality";
 import { extractOrderText } from "./textExtractService";
+
+export type { PersonalityPreset };
 
 export interface OcrResult {
   /** 商品名称 */
@@ -34,6 +37,12 @@ export interface OcrSettings {
   model: string;
   /** 添加/编辑后自动生成 AI 评价 */
   itemReviewEnabled: boolean;
+  /** 匣灵性格预设 */
+  personalityPreset: PersonalityPreset;
+  /** 自定义性格描述（preset 为 custom 时使用，最多 200 字） */
+  personalityCustom: string;
+  /** 匣物评价是否跟随匣灵性格 */
+  itemReviewFollowPersonality: boolean;
 }
 
 const DEFAULT_SETTINGS: OcrSettings = {
@@ -41,6 +50,9 @@ const DEFAULT_SETTINGS: OcrSettings = {
   apiBase: "https://api.openai.com/v1",
   model: "gpt-4o-mini",
   itemReviewEnabled: false,
+  personalityPreset: "warm",
+  personalityCustom: "",
+  itemReviewFollowPersonality: true,
 };
 
 let ocrCache: OcrSettings | null = null;
@@ -83,6 +95,9 @@ export async function getOcrSettingsAsync(): Promise<OcrSettings> {
         ...DEFAULT_SETTINGS,
         ...parsedRaw,
         itemReviewEnabled: parsedRaw.itemReviewEnabled ?? false,
+        personalityPreset: parsedRaw.personalityPreset ?? "warm",
+        personalityCustom: parsedRaw.personalityCustom ?? "",
+        itemReviewFollowPersonality: parsedRaw.itemReviewFollowPersonality ?? true,
       };
       ocrCache = parsed;
       return parsed;
