@@ -18,6 +18,7 @@ import {
   OcrResult,
   type RecognizeProgress,
 } from "../../../lib/ocr/ocrService";
+import { getOcrSettingsAsync, grantAiConsent, hasAiConsent } from "../../../lib/ocr/ocrService";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
 
 export default function OcrImport() {
@@ -53,6 +54,16 @@ export default function OcrImport() {
     if (!imageUri) {
       Alert.alert("提示", "请先选择图片");
       return;
+    }
+    const settings = await getOcrSettingsAsync();
+    if (!hasAiConsent(settings, "ocr")) {
+      const approved = await new Promise<boolean>((resolve) => Alert.alert(
+        "确认 OCR 数据发送",
+        "订单截图会先在本地提取文字；提取出的订单文字将发送到你配置的 AI 服务，用于生成结构化信息。",
+        [{ text: "取消", style: "cancel", onPress: () => resolve(false) }, { text: "同意", onPress: () => resolve(true) }]
+      ));
+      if (!approved) return;
+      await grantAiConsent("ocr");
     }
     setLoading(true);
     setProgressStage("extracting");

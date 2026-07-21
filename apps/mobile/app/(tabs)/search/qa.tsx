@@ -10,13 +10,14 @@ import {
   Platform,
   Image,
   Keyboard,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askQuestion, QaMessage } from "../../../lib/ai/qaService";
 import { getPersonalityLabel } from "../../../lib/ai/personality";
-import { getOcrSettingsAsync } from "../../../lib/ocr/ocrService";
+import { getOcrSettingsAsync, grantAiConsent, hasAiConsent } from "../../../lib/ocr/ocrService";
 import type { PersonalityPreset } from "../../../lib/ocr/ocrService";
 
 const PRESETS = [
@@ -71,6 +72,16 @@ export default function QaPage() {
     const q = text.trim();
     if (!q || loading) return;
 
+    const settings = await getOcrSettingsAsync();
+    if (!hasAiConsent(settings, "qa")) {
+      const approved = await new Promise<boolean>((resolve) => Alert.alert(
+        "确认匣灵数据发送",
+        "匣灵会向你配置的 AI 服务发送本地预计算统计和与问题相关的最多 50 条物品字段，不会发送图片或 API Key。",
+        [{ text: "取消", style: "cancel", onPress: () => resolve(false) }, { text: "同意", onPress: () => resolve(true) }]
+      ));
+      if (!approved) return;
+      await grantAiConsent("qa");
+    }
     const userMsg: QaMessage = { role: "user", content: q };
     const history = [...messages, userMsg];
     setMessages(history);

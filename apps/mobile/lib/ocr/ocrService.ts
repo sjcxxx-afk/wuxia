@@ -5,6 +5,7 @@
  */
 
 import * as FileSystem from "expo-file-system/legacy";
+import * as SecureStore from "expo-secure-store";
 import type { PersonalityPreset } from "../ai/personality";
 import { extractOrderText } from "./textExtractService";
 
@@ -30,7 +31,7 @@ export interface OcrResult {
 const OCR_SETTINGS_FILENAME = "warehouse-ocr-settings.json";
 
 export interface OcrSettings {
-  apiKey: string;
+  hasApiKey: boolean;
   /** 自定义 API 地址，留空使用 OpenAI 官方 */
   apiBase: string;
   /** 模型名称 */
@@ -43,17 +44,25 @@ export interface OcrSettings {
   personalityCustom: string;
   /** 匣物评价是否跟随匣灵性格 */
   itemReviewFollowPersonality: boolean;
+  /** Capability -> API origin that the user explicitly approved. */
+  consents: Partial<Record<AiCapability, string>>;
 }
 
+export type AiCapability = "ocr" | "qa" | "itemReview";
+export type SaveOcrSettings = Omit<OcrSettings, "hasApiKey"> & { apiKey?: string };
+
 const DEFAULT_SETTINGS: OcrSettings = {
-  apiKey: "",
+  hasApiKey: false,
   apiBase: "https://api.openai.com/v1",
   model: "gpt-4o-mini",
   itemReviewEnabled: false,
   personalityPreset: "warm",
   personalityCustom: "",
   itemReviewFollowPersonality: true,
+  consents: {},
 };
+
+const API_KEY_NAME = "warehouse-ai-api-key";
 
 let ocrCache: OcrSettings | null = null;
 
@@ -84,20 +93,34 @@ export function getOcrSettings(): OcrSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
+function originFor(apiBase: string): string {
+  try { return new URL(apiBase).origin; } catch { return apiBase.trim().replace(/\/+$/, ""); }
+}
+
 /** 异步加载 OCR 设置（用于页面初始化时恢复持久化配置） */
 export async function getOcrSettingsAsync(): Promise<OcrSettings> {
   if (ocrCache) return ocrCache;
   try {
     const raw = await readSettingsFile();
     if (raw) {
-      const parsedRaw = JSON.parse(raw);
+      const parsedRaw = JSON.parse(raw) as Record<string, unknown>;
+      const legacyKey = typeof parsedRaw.apiKey === "string" ? parsedRaw.apiKey : "";
+      if (legacyKey) {
+        await SecureStore.setItemAsync(API_KEY_NAME, legacyKey);
+        delete parsedRaw.apiKey;
+        await writeSettingsFile(JSON.stringify(parsedRaw));
+      }
+      const key = await SecureStore.getItemAsync(API_KEY_NAME);
+      const preset = parsedRaw.personalityPreset;
       const parsed: OcrSettings = {
         ...DEFAULT_SETTINGS,
         ...parsedRaw,
-        itemReviewEnabled: parsedRaw.itemReviewEnabled ?? false,
-        personalityPreset: parsedRaw.personalityPreset ?? "warm",
-        personalityCustom: parsedRaw.personalityCustom ?? "",
-        itemReviewFollowPersonality: parsedRaw.itemReviewFollowPersonality ?? true,
+        itemReviewEnabled: typeof parsedRaw.itemReviewEnabled === "boolean" ? parsedRaw.itemReviewEnabled : false,
+        personalityPreset: preset === "reliable" || preset === "cool" || preset === "custom" || preset === "warm" ? preset : "warm",
+        personalityCustom: typeof parsedRaw.personalityCustom === "string" ? parsedRaw.personalityCustom : "",
+        itemReviewFollowPersonality: typeof parsedRaw.itemReviewFollowPersonality === "boolean" ? parsedRaw.itemReviewFollowPersonality : true,
+        consents: (parsedRaw.consents as OcrSettings["consents"]) ?? {},
+        hasApiKey: !!key,
       };
       ocrCache = parsed;
       return parsed;
@@ -106,11 +129,37 @@ export async function getOcrSettingsAsync(): Promise<OcrSettings> {
   return { ...DEFAULT_SETTINGS };
 }
 
-export async function saveOcrSettings(s: OcrSettings): Promise<void> {
-  ocrCache = { ...s };
-  try {
-    await writeSettingsFile(JSON.stringify(s));
-  } catch { /* ignore */ }
+export async function saveOcrSettings(s: SaveOcrSettings): Promise<void> {
+  if (s.apiKey?.trim()) await SecureStore.setItemAsync(API_KEY_NAME, s.apiKey.trim());
+  const { apiKey: _apiKey, ...persisted } = s;
+  const hasApiKey = !!(await SecureStore.getItemAsync(API_KEY_NAME));
+  ocrCache = { ...persisted, hasApiKey };
+  await writeSettingsFile(JSON.stringify(persisted));
+}
+
+export async function clearApiKey(): Promise<void> {
+  await SecureStore.deleteItemAsync(API_KEY_NAME);
+  if (ocrCache) ocrCache = { ...ocrCache, hasApiKey: false };
+}
+
+export async function getApiKey(): Promise<string> {
+  return (await SecureStore.getItemAsync(API_KEY_NAME)) ?? "";
+}
+
+export function hasAiConsent(settings: OcrSettings, capability: AiCapability): boolean {
+  return settings.consents[capability] === originFor(settings.apiBase);
+}
+
+export async function grantAiConsent(capability: AiCapability): Promise<void> {
+  const settings = await getOcrSettingsAsync();
+  await saveOcrSettings({ ...settings, consents: { ...settings.consents, [capability]: originFor(settings.apiBase) } });
+}
+
+export async function revokeAiConsent(capability?: AiCapability): Promise<void> {
+  const settings = await getOcrSettingsAsync();
+  const consents = { ...settings.consents };
+  if (capability) delete consents[capability]; else Object.keys(consents).forEach((key) => delete consents[key as AiCapability]);
+  await saveOcrSettings({ ...settings, consents });
 }
 
 const SYSTEM_PROMPT = `你是一个订单信息解析助手。你的任务是根据电商订单截图的 OCR 文字提取购买信息。
@@ -147,9 +196,11 @@ export async function recognizeOrderScreenshot(
 ): Promise<OcrResult> {
   const settings = await getOcrSettingsAsync();
 
-  if (!settings.apiKey) {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
     throw new Error("请先在设置中配置 API Key");
   }
+  if (!hasAiConsent(settings, "ocr")) throw new Error("请先确认 OCR 数据发送授权");
 
   onProgress?.("extracting");
   const ocrText = await extractOrderText(imageUri);
@@ -159,7 +210,7 @@ export async function recognizeOrderScreenshot(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${settings.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: settings.model,

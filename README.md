@@ -30,7 +30,7 @@ npx eas build -p android --profile preview  # 构建手机 APK
 
 - React Native 0.85 + Expo SDK 56（手机 App）
 - expo-router（文件路由） + TypeScript
-- JSON 文件存储（expo-file-system）
+- JSON 文件存储（expo-file-system，原子写入 + 本地备份）
 - EAS Build + expo-updates（安装包分发与 OTA）
 
 ## 文档

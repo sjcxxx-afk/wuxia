@@ -168,9 +168,14 @@ export const itemRepository = {
     if (item?.images?.length) {
       await deleteImages(item.images);
     }
+    const deletedAt = nowISO();
     updateData((data) => ({
       ...data,
       items: data.items.filter((item) => item.id !== id),
+      deletedItems: [
+        ...data.deletedItems.filter((tombstone) => tombstone.id !== id),
+        { id, deletedAt },
+      ],
     }));
     triggerAutoExport();
   },

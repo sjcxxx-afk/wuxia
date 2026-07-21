@@ -1,0 +1,28 @@
+version: '1.0'
+name: wuxia-quality
+displayName: 物匣质量检查
+triggers:
+  push:
+    branches:
+      - main
+      - master
+      - codex/**
+  pull_request:
+    branches:
+      - main
+      - master
+stages:
+  - stage:
+      name: quality
+      displayName: 类型与单元测试
+      strategy: naturally
+      trigger: auto
+      steps:
+        - step: build@node
+          name: verify
+          displayName: npm 检查
+          nodeVersion: '20'
+          commands:
+            - cd apps/mobile
+            - npm ci
+            - npm run check

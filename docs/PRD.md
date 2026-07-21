@@ -104,7 +104,7 @@
 |------|----------|
 | 前端框架 | React Native 0.85.3 + Expo SDK 56 |
 | 导航 | expo-router（文件路由） |
-| 数据存储 | JSON 文件（expo-file-system） |
+| 数据存储 | JSON 文件（expo-file-system，原子写入 + 最近 3 份本地备份） |
 | 图片存储 | 应用文档目录 images/ 子目录 |
 | 图片选择 | expo-image-picker |
 | 文件选择 | expo-document-picker |

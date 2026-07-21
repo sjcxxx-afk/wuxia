@@ -74,7 +74,7 @@
 |----|------|------|
 | ADR-001 | 本地 JSON 文件存储 | 个人数据量小、透明可读、云盘同步友好 |
 | ADR-002 | 内存缓存 + 防抖写盘 (300ms) | 避免频繁 I/O，性能与数据安全的平衡 |
-| ADR-003 | API Key 独立文件存储 | 敏感信息与业务数据隔离，方便用户选择性同步 |
+| ADR-003 | API Key 使用系统安全存储 | 与业务数据和同步文件隔离，避免明文落盘 |
 | ADR-004 | 图片存文件系统 + JSON 存路径 | 避免 JSON 膨胀 (base64 会使文件增大 33%)，支持独立管理 |
 | ADR-005 | 无后端、无认证 | 核心理念"打开即用"，降低隐私顾虑和使用门槛 |
 
@@ -711,7 +711,7 @@ apps/mobile/
 │           ├── edit.tsx              # 匣主资料页
 │           └── stats.tsx             # 物匣统计页
 │
-├── src/                              # 业务逻辑层（非 UI）
+├── lib/                              # 业务逻辑层（非 UI）
 │   ├── types.ts                      # 全局类型定义
 │   │
 │   ├── storage/                      # 持久化层
@@ -797,19 +797,19 @@ apps/mobile/
 │  • 复合组件 (ItemForm)：含本地交互状态                 │
 │  • 不持有全局状态，不直接访问数据层                     │
 ├─────────────────────────────────────────────────────┤
-│  src/repositories/  Data Access  数据仓储层          │
+│  lib/repositories/  Data Access  数据仓储层          │
 │  ─────────────────────────────────────────────────  │
 │  • 封装所有 CRUD 操作                                 │
 │  • 类型安全：输入/输出类型来自 types.ts                │
 │  • 调用 jsonStore 进行读写                            │
 ├─────────────────────────────────────────────────────┤
-│  src/storage/      Infrastructure  基础设施层        │
+│  lib/storage/      Infrastructure  基础设施层        │
 │  ─────────────────────────────────────────────────  │
 │  • jsonStore：文件 I/O、缓存、防抖                    │
 │  • syncService：同步逻辑、合并策略                    │
 │  • imageStore：图片文件管理                           │
 ├─────────────────────────────────────────────────────┤
-│  src/ocr/ src/ai/  External Services  外部服务       │
+│  lib/ocr/ lib/ai/  External Services  外部服务       │
 │  ─────────────────────────────────────────────────  │
 │  • OCR 识别 + CSV 解析                               │
 │  • 匣灵问答                                         │
@@ -890,7 +890,7 @@ interface OcrSettings {
 | 项目 | 策略 |
 |------|------|
 | 数据存储 | 本地文件系统，不传输到任何第三方服务器 |
-| API Key | 明文存储于本地 `warehouse-ocr-settings.json`；UI 输入框使用 `secureTextEntry` |
+| API Key | 仅存储于系统安全存储；配置文件和同步文件不包含密钥 |
 | 数据传输 | AI 调用使用 HTTPS；物匣数据仅在匣主主动提问时作为上下文发送给 LLM |
 | 同步文件 | 依赖云盘软件自身的加密传输；App 不做额外加密 |
 
@@ -963,7 +963,7 @@ production  ──▶ 正式版本，推送 OTA 到 production channel
 用户操作
    │
    ▼
-Page (app/)  ──调用──▶  Repository (src/repositories/)
+Page (app/)  ──调用──▶  Repository (lib/repositories/)
                               │
                     ┌─────────┼─────────┐
                     ▼         ▼         ▼

@@ -5,7 +5,7 @@
  * 复用 OCR 设置中的 API 配置与 itemReviewEnabled 开关。
  */
 
-import { getOcrSettingsAsync } from "../ocr/ocrService";
+import { getApiKey, getOcrSettingsAsync, hasAiConsent } from "../ocr/ocrService";
 import { buildItemReviewSystemPrompt, stripMarkdown } from "./personality";
 import { loadData, updateData, nowISO } from "../storage/jsonStore";
 import { triggerAutoExport } from "../storage/syncService";
@@ -44,7 +44,8 @@ function buildItemContext(
 export async function generateAndSaveItemReview(itemId: string): Promise<void> {
   try {
     const settings = await getOcrSettingsAsync();
-    if (!settings.itemReviewEnabled || !settings.apiKey.trim()) return;
+    const apiKey = await getApiKey();
+    if (!settings.itemReviewEnabled || !apiKey || !hasAiConsent(settings, "itemReview")) return;
 
     const data = await loadData();
     const raw = data.items.find((i) => i.id === itemId);
@@ -80,7 +81,7 @@ export async function generateAndSaveItemReview(itemId: string): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       signal: controller.signal,
       body: JSON.stringify(requestBody),

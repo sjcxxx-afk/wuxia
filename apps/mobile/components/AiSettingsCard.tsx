@@ -7,11 +7,12 @@ import {
   Modal,
   StyleSheet,
   Switch,
+  Alert,
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getOcrSettings, getOcrSettingsAsync, saveOcrSettings, type OcrSettings, type PersonalityPreset } from "../lib/ocr/ocrService";
+import { getOcrSettings, getOcrSettingsAsync, grantAiConsent, revokeAiConsent, saveOcrSettings, type OcrSettings, type PersonalityPreset } from "../lib/ocr/ocrService";
 import {
   PERSONALITY_CUSTOM_LABEL,
   PERSONALITY_LABELS,
@@ -43,7 +44,7 @@ const PERSONALITY_OPTIONS: { key: PersonalityPreset; label: string }[] = [
 export default function AiSettingsCard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [provider, setProvider] = useState<AIProvider>(getProviderFromSettings(getOcrSettings()));
-  const [apiKey, setApiKey] = useState(getOcrSettings().apiKey);
+  const [apiKey, setApiKey] = useState("");
   const [apiBase, setApiBase] = useState(getOcrSettings().apiBase);
   const [model, setModel] = useState(getOcrSettings().model);
   const [itemReviewEnabled, setItemReviewEnabled] = useState(false);
@@ -51,6 +52,7 @@ export default function AiSettingsCard() {
   const [personalityCustom, setPersonalityCustom] = useState("");
   const [itemReviewFollowPersonality, setItemReviewFollowPersonality] = useState(true);
   const [configured, setConfigured] = useState(false);
+  const [consents, setConsents] = useState(getOcrSettings().consents);
 
   // 挂载时异步加载持久化的 AI 配置
   useEffect(() => {
@@ -59,41 +61,65 @@ export default function AiSettingsCard() {
       setPersonalityPreset(s.personalityPreset);
       setPersonalityCustom(s.personalityCustom);
       setItemReviewFollowPersonality(s.itemReviewFollowPersonality);
-      if (s.apiKey) {
+      if (s.hasApiKey) {
         setConfigured(true);
         setProvider(getProviderFromSettings(s));
-        setApiKey(s.apiKey);
         setApiBase(s.apiBase);
         setModel(s.model);
       }
+      setConsents(s.consents);
     });
   }, []);
 
   const handleSave = async () => {
     await saveOcrSettings({
-      apiKey,
       apiBase,
       model,
       itemReviewEnabled,
       personalityPreset,
       personalityCustom: truncateCustomPersonality(personalityCustom),
       itemReviewFollowPersonality,
+      consents,
+      ...(apiKey.trim() ? { apiKey } : {}),
     });
-    setConfigured(!!apiKey.trim());
+    setConfigured(configured || !!apiKey.trim());
+    setApiKey("");
     setModalVisible(false);
   };
 
   const openModal = async () => {
     const s = await getOcrSettingsAsync();
     setProvider(getProviderFromSettings(s));
-    setApiKey(s.apiKey);
+    setApiKey("");
     setApiBase(s.apiBase);
     setModel(s.model);
     setItemReviewEnabled(s.itemReviewEnabled);
     setPersonalityPreset(s.personalityPreset);
     setPersonalityCustom(s.personalityCustom);
     setItemReviewFollowPersonality(s.itemReviewFollowPersonality);
+    setConsents(s.consents);
     setModalVisible(true);
+  };
+
+  const toggleReview = (enabled: boolean) => {
+    if (!enabled) {
+      setItemReviewEnabled(enabled);
+      return;
+    }
+    Alert.alert("确认发送 AI 评价数据", "开启后会向当前服务发送单件匣物的名称、分类、价格、状态、品牌、平台和备注，用于生成评价。", [
+      { text: "取消", style: "cancel" },
+      { text: "同意并开启", onPress: async () => {
+        await grantAiConsent("itemReview");
+        const updated = await getOcrSettingsAsync();
+        setConsents(updated.consents);
+        setItemReviewEnabled(true);
+      } },
+    ]);
+  };
+
+  const revokeAllConsents = async () => {
+    await revokeAiConsent();
+    setConsents({});
   };
 
   const selectProvider = (p: AIProvider) => {
@@ -170,10 +196,11 @@ export default function AiSettingsCard() {
               style={styles.fieldInput}
               value={apiKey}
               onChangeText={setApiKey}
-              placeholder="sk-..."
+              placeholder={configured ? "已安全保存；输入新 Key 可替换" : "sk-..."}
               placeholderTextColor="#9CA3AF"
               secureTextEntry
             />
+            <Text style={styles.privacyHint}>密钥仅保存在设备安全存储中，不会导出到同步文件。</Text>
 
             <Text style={styles.fieldLabel}>API Base</Text>
             <TextInput
@@ -243,11 +270,14 @@ export default function AiSettingsCard() {
               </View>
               <Switch
                 value={itemReviewEnabled}
-                onValueChange={setItemReviewEnabled}
+                onValueChange={toggleReview}
                 trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
                 thumbColor={itemReviewEnabled ? "#4F46E5" : "#9CA3AF"}
               />
             </View>
+
+            <Text style={styles.privacyHint}>OCR 会发送本地提取的订单文字；匣灵会发送经过本地筛选的物品字段。首次使用时会再次确认。</Text>
+            {Object.keys(consents).length > 0 && <TouchableOpacity onPress={revokeAllConsents}><Text style={styles.revokeText}>撤回全部 AI 数据授权</Text></TouchableOpacity>}
 
             <View style={styles.reviewRow}>
               <View style={{ flex: 1 }}>
@@ -365,6 +395,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 17,
   },
+  privacyHint: { fontSize: 12, color: "#6B7280", lineHeight: 17, marginTop: -8, marginBottom: 16 },
+  revokeText: { fontSize: 13, color: "#DC2626", fontWeight: "600", marginBottom: 16 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },
   cancelBtnText: { fontSize: 15, color: "#6B7280", fontWeight: "600" },

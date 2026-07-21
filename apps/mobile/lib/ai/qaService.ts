@@ -7,7 +7,7 @@
 
 import { buildQaSystemPrompt, stripMarkdown } from "./personality";
 import { buildInsightsJson } from "./warehouseInsights";
-import { getOcrSettingsAsync } from "../ocr/ocrService";
+import { getApiKey, getOcrSettingsAsync, hasAiConsent } from "../ocr/ocrService";
 import { loadData } from "../storage/jsonStore";
 
 export interface QaMessage {
@@ -18,10 +18,24 @@ export interface QaMessage {
 /**
  * 构建物品数据的精简上下文
  */
-async function buildContext(): Promise<string> {
-  const data = await loadData();
+const MAX_CONTEXT_ITEMS = 50;
 
-  const items = data.items.map((item) => {
+function matchScore(item: { name: string; brand: string | null; notes: string | null; location: string | null; purchasePlatform: string | null }, question: string): number {
+  const haystack = [item.name, item.brand, item.notes, item.location, item.purchasePlatform].filter(Boolean).join(" ").toLowerCase();
+  const terms = question.toLowerCase().match(/[a-z0-9]+|[\u4e00-\u9fff]/g) ?? [];
+  return terms.reduce((score, term) => score + (term.length > 1 && haystack.includes(term) ? 1 : 0), 0);
+}
+
+export async function buildContext(question: string): Promise<string> {
+  const data = await loadData();
+  const scoredItems = data.items
+    .map((item) => ({ item, score: matchScore(item, question) }))
+    .sort((a, b) => b.score - a.score || new Date(b.item.updatedAt).getTime() - new Date(a.item.updatedAt).getTime());
+  const selected = (scoredItems.some((entry) => entry.score > 0) ? scoredItems.filter((entry) => entry.score > 0) : scoredItems)
+    .slice(0, MAX_CONTEXT_ITEMS)
+    .map((entry) => entry.item);
+
+  const items = selected.map((item) => {
     const cat = data.categories.find((c) => c.id === item.categoryId);
     return {
       名称: item.name,
@@ -29,11 +43,9 @@ async function buildContext(): Promise<string> {
       品牌: item.brand ?? "",
       价格: item.purchasePrice ?? 0,
       平台: item.purchasePlatform ?? "",
-      店铺: item.storeName ?? "",
       位置: item.location ?? "",
       数量: item.quantity ?? 1,
       状态: item.status ?? "使用中",
-      备注: item.notes ?? "",
       购买日期: item.purchaseDate ?? "",
     };
   });
@@ -50,7 +62,7 @@ async function buildContext(): Promise<string> {
     })),
   };
 
-  return JSON.stringify({ 统计: stats, 匣中列表: items }, null, 2);
+  return JSON.stringify({ 统计: stats, 候选数量: items.length, 已省略条目: Math.max(0, data.items.length - items.length), 匣中候选: items }, null, 2);
 }
 
 /**
@@ -61,13 +73,14 @@ export async function askQuestion(
   history: QaMessage[]
 ): Promise<string> {
   const settings = await getOcrSettingsAsync();
-
-  if (!settings.apiKey) {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
     throw new Error("请先在设置中配置 AI 接口");
   }
+  if (!hasAiConsent(settings, "qa")) throw new Error("请先确认匣灵数据发送授权");
 
   const data = await loadData();
-  const context = await buildContext();
+  const context = await buildContext(question);
   const insights = buildInsightsJson(data);
   const systemPrompt = buildQaSystemPrompt(
     settings.personalityPreset,
@@ -91,7 +104,7 @@ export async function askQuestion(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${settings.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: settings.model,

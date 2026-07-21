@@ -55,18 +55,16 @@ async function writeSettingsFile(content: string): Promise<void> {
 /**
  * 从文件系统加载同步设置。
  */
-export function loadSyncSettings(): SyncSettings {
+export async function loadSyncSettings(): Promise<SyncSettings> {
   try {
-    // 同步加载：先返回内存缓存，异步读取磁盘用于下次启动
-    readSettingsFile().then((raw) => {
-      if (raw) {
-        const s = JSON.parse(raw) as SyncSettings;
-        syncFolderPath = s.syncFolderPath || "";
-        autoSyncEnabled = s.autoSyncEnabled || false;
-        syncMode = s.syncMode || "every_change";
-      }
-    }).catch(() => {});
-  } catch { /* ignore */ }
+    const raw = await readSettingsFile();
+    if (raw) {
+      const s = JSON.parse(raw) as Partial<SyncSettings>;
+      syncFolderPath = s.syncFolderPath || "";
+      autoSyncEnabled = s.autoSyncEnabled === true;
+      syncMode = s.syncMode || "every_change";
+    }
+  } catch { /* Retain safe defaults for invalid or unavailable settings. */ }
   return { syncFolderPath, autoSyncEnabled, syncMode };
 }
 

@@ -15,15 +15,13 @@ import {
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StorageAccessFramework } from "expo-file-system/legacy";
-import {
-  loadSyncSettings,
-  saveSyncSettings,
-} from "../lib/storage/syncSettings";
+import { loadSyncSettings, saveSyncSettings } from "../lib/storage/syncSettings";
 import {
   checkAutoImport,
   doAutoImport,
   doAutoExport,
 } from "../lib/storage/syncService";
+import { getDataRecoveryState, listBackups, restoreBackup, type BackupInfo } from "../lib/storage/jsonStore";
 
 type SyncMode = "every_change" | "every_5min" | "every_30min";
 
@@ -41,13 +39,24 @@ export default function SyncSettingsCard() {
   const [pathModalVisible, setPathModalVisible] = useState(false);
   const [pathInput, setPathInput] = useState("");
   const [importing, setImporting] = useState(false);
+  const [backups, setBackups] = useState<BackupInfo[]>([]);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+
+  const refreshBackups = useCallback(async () => {
+    setBackups(await listBackups());
+    const recovery = getDataRecoveryState();
+    setRecoveryMessage(recovery.hasCorruptData ? recovery.message : null);
+  }, []);
 
   useEffect(() => {
-    const s = loadSyncSettings();
-    setSyncPath(s.syncFolderPath);
-    setAutoSync(s.autoSyncEnabled);
-    setSyncMode(s.syncMode);
-  }, []);
+    void (async () => {
+      const s = await loadSyncSettings();
+      setSyncPath(s.syncFolderPath);
+      setAutoSync(s.autoSyncEnabled);
+      setSyncMode(s.syncMode);
+      await refreshBackups();
+    })();
+  }, [refreshBackups]);
 
   const updateAutoSync = (enabled: boolean) => {
     setAutoSync(enabled);
@@ -102,8 +111,9 @@ export default function SyncSettingsCard() {
           onPress: async () => {
             setImporting(true);
             try {
-              await doAutoImport();
-              Alert.alert("导入成功", "数据已合并");
+              const merged = await doAutoImport();
+              Alert.alert("导入成功", `新增 ${merged.added}、更新 ${merged.updated}、删除 ${merged.deleted}、跳过 ${merged.skipped}`);
+              await refreshBackups();
               checkSync();
             } catch (e: any) {
               Alert.alert("导入失败", e.message);
@@ -116,6 +126,25 @@ export default function SyncSettingsCard() {
     } else if (result.remoteTime) {
       Alert.alert("提示", "本地数据已是最新");
     }
+  };
+
+  const handleRestoreBackup = (backup: BackupInfo) => {
+    Alert.alert("恢复本地备份", "将以该备份覆盖当前本地数据，并保留当前数据为新的备份。", [
+      { text: "取消", style: "cancel" },
+      {
+        text: "恢复",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await restoreBackup(backup.slot);
+            await refreshBackups();
+            Alert.alert("恢复成功", "已恢复本地备份，请按需重新导出同步文件。");
+          } catch (e: any) {
+            Alert.alert("恢复失败", e?.message ?? "无法恢复备份");
+          }
+        },
+      },
+    ]);
   };
 
   const handleSetPath = () => {
@@ -224,6 +253,16 @@ export default function SyncSettingsCard() {
         </TouchableOpacity>
       </View>
 
+      {(recoveryMessage || backups.length > 0) && <View style={styles.backupSection}>
+        {recoveryMessage ? <Text style={styles.recoveryText}>检测到本地数据异常：{recoveryMessage}。可恢复最近备份。</Text> : null}
+        {backups.map((backup) => (
+          <TouchableOpacity key={backup.slot} style={styles.backupRow} onPress={() => handleRestoreBackup(backup)}>
+            <Text style={styles.backupText}>恢复备份 {backup.slot}（{new Date(backup.modifiedAt).toLocaleString()}）</Text>
+            <Ionicons name="refresh-outline" size={16} color="#4F46E5" />
+          </TouchableOpacity>
+        ))}
+      </View>}
+
       {/* Path Modal */}
       <Modal
         visible={pathModalVisible}
@@ -308,6 +347,10 @@ const styles = StyleSheet.create({
   syncBtn: { flex: 1, flexDirection: "row", height: 40, backgroundColor: "#4F46E5", borderRadius: 10, justifyContent: "center", alignItems: "center", gap: 6 },
   importBtn: { backgroundColor: "#059669" },
   syncBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  backupSection: { gap: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6", paddingTop: 12 },
+  recoveryText: { fontSize: 12, color: "#B45309", lineHeight: 18 },
+  backupRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 },
+  backupText: { fontSize: 12, color: "#4F46E5", flex: 1 },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
   keyboardAvoiding: { width: "100%", maxHeight: "90%" },

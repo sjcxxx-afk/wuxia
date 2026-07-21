@@ -78,9 +78,19 @@ export const categoryRepository = {
   },
 
   async delete(id: string): Promise<void> {
+    const deletedAt = nowISO();
     updateData((data) => ({
       ...data,
       categories: data.categories.filter((c) => c.id !== id),
+      items: data.items.map((item) =>
+        item.categoryId === id
+          ? { ...item, categoryId: null, customValues: {}, updatedAt: deletedAt }
+          : item
+      ),
+      deletedCategories: [
+        ...data.deletedCategories.filter((tombstone) => tombstone.id !== id),
+        { id, deletedAt },
+      ],
     }));
     triggerAutoExport();
   },
