@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import type { AiReviewFailureCode, AiReviewStatus } from "../types";
 
 const DATA_FILENAME = "warehouse-data.json";
 const TEMP_FILENAME = "warehouse-data.tmp";
@@ -55,6 +56,10 @@ export interface ItemData {
   customValues: Record<string, string>;
   aiComment: string | null;
   aiCommentAt: string | null;
+  aiReviewStatus: AiReviewStatus;
+  aiReviewRequestId: string | null;
+  aiReviewStartedAt: string | null;
+  aiReviewError: AiReviewFailureCode | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,12 +126,26 @@ export function normalizeWarehouseData(value: unknown): WarehouseData {
       customValues: item.customValues ?? {},
       aiComment: item.aiComment ?? null,
       aiCommentAt: item.aiCommentAt ?? null,
+      aiReviewStatus: isAiReviewStatus(item.aiReviewStatus) ? item.aiReviewStatus : item.aiComment ? "succeeded" : "idle",
+      aiReviewRequestId: typeof item.aiReviewRequestId === "string" ? item.aiReviewRequestId : null,
+      aiReviewStartedAt: typeof item.aiReviewStartedAt === "string" ? item.aiReviewStartedAt : null,
+      aiReviewError: isAiReviewFailureCode(item.aiReviewError) ? item.aiReviewError : null,
     })),
     deletedItems: Array.isArray(raw.deletedItems) ? raw.deletedItems.filter(isDeletedRecord) : [],
     deletedCategories: Array.isArray(raw.deletedCategories)
       ? raw.deletedCategories.filter(isDeletedRecord)
       : [],
   };
+}
+
+function isAiReviewStatus(value: unknown): value is AiReviewStatus {
+  return value === "idle" || value === "pending" || value === "succeeded" || value === "failed";
+}
+
+function isAiReviewFailureCode(value: unknown): value is AiReviewFailureCode {
+  return value === "not_configured" || value === "authorization_required" || value === "timeout" ||
+    value === "network" || value === "authentication" || value === "rate_limited" ||
+    value === "http_error" || value === "empty_response" || value === "invalid_response";
 }
 
 function isDeletedRecord(value: unknown): value is DeletedRecord {

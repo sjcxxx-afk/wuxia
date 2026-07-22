@@ -7,6 +7,19 @@ export type CustomField = {
 };
 
 // ---- Item ----
+export type AiReviewStatus = "idle" | "pending" | "succeeded" | "failed";
+
+export type AiReviewFailureCode =
+  | "not_configured"
+  | "authorization_required"
+  | "timeout"
+  | "network"
+  | "authentication"
+  | "rate_limited"
+  | "http_error"
+  | "empty_response"
+  | "invalid_response";
+
 export type Item = {
   id: string;
   name: string;
@@ -24,6 +37,10 @@ export type Item = {
   customValues: Record<string, string>;
   aiComment: string | null;
   aiCommentAt: string | null;
+  aiReviewStatus: AiReviewStatus;
+  aiReviewRequestId: string | null;
+  aiReviewStartedAt: string | null;
+  aiReviewError: AiReviewFailureCode | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -14,11 +14,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
 import { categoryRepository } from "../../../lib/repositories/categoryRepository";
 import { getOcrSettingsAsync } from "../../../lib/ocr/ocrService";
+import { generateAndSaveItemReview, getItemReviewFailureMessage } from "../../../lib/ai/itemReviewService";
 import { Item, CustomField } from "../../../lib/types";
 import StatusBadge from "../../../components/StatusBadge";
 import confirmDialog from "../../../components/ConfirmDialog";
-
-const REVIEW_PENDING_MS = 60 * 1000;
 
 export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,7 +50,7 @@ export default function ItemDetail() {
   );
 
   useEffect(() => {
-    if (!id || !itemReviewEnabled || item?.aiComment) {
+    if (!id || !itemReviewEnabled || item?.aiReviewStatus !== "pending") {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -59,13 +58,9 @@ export default function ItemDetail() {
       return;
     }
 
-    const updatedAt = item?.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-    const isPending = item && Date.now() - updatedAt < REVIEW_PENDING_MS;
-    if (!isPending) return;
-
     pollRef.current = setInterval(() => {
       loadItem();
-    }, 2000);
+    }, 1000);
 
     return () => {
       if (pollRef.current) {
@@ -80,6 +75,19 @@ export default function ItemDetail() {
       await itemRepository.delete(id!);
       router.canGoBack() ? router.back() : router.replace("/(tabs)/items");
     });
+  };
+
+  const handleRetryReview = () => {
+    if (!id || item?.aiReviewStatus === "pending") return;
+    setItem((current) => current ? {
+      ...current,
+      aiComment: null,
+      aiCommentAt: null,
+      aiReviewStatus: "pending",
+      aiReviewError: null,
+      aiReviewStartedAt: new Date().toISOString(),
+    } : current);
+    void generateAndSaveItemReview(id);
   };
 
   if (!item) {
@@ -100,11 +108,10 @@ export default function ItemDetail() {
     );
   };
 
-  const updatedAtMs = new Date(item.updatedAt).getTime();
-  const reviewPending =
-    itemReviewEnabled &&
-    !item.aiComment &&
-    Date.now() - updatedAtMs < REVIEW_PENDING_MS;
+  const reviewPending = item.aiReviewStatus === "pending";
+  const reviewElapsedSeconds = item.aiReviewStartedAt
+    ? Math.max(1, Math.floor((Date.now() - new Date(item.aiReviewStartedAt).getTime()) / 1000))
+    : 0;
   const showReviewCard = itemReviewEnabled;
 
   return (
@@ -170,8 +177,15 @@ export default function ItemDetail() {
                 {reviewPending ? (
                   <>
                     <ActivityIndicator size="small" color="#4F46E5" />
-                    <Text style={styles.reviewLoadingText}>匣灵正在评价…</Text>
+                    <Text style={styles.reviewLoadingText}>匣灵正在评价…已等待 {reviewElapsedSeconds} 秒</Text>
                   </>
+                ) : item.aiReviewStatus === "failed" && item.aiReviewError ? (
+                  <View style={styles.reviewFailed}>
+                    <Text style={styles.reviewLoadingText}>{getItemReviewFailureMessage(item.aiReviewError)}</Text>
+                    <TouchableOpacity style={styles.retryReviewBtn} onPress={handleRetryReview}>
+                      <Text style={styles.retryReviewText}>重新评价</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <Text style={styles.reviewLoadingText}>暂无评价（可改匣后重新触发）</Text>
                 )}
@@ -313,6 +327,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  reviewFailed: { gap: 10 },
+  retryReviewBtn: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: "#4F46E5",
+  },
+  retryReviewText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   reviewLoadingText: {
     fontSize: 14,
     color: "#6B7280",

@@ -30,6 +30,10 @@ function toItem(raw: any, data: any): Item {
     customValues: raw.customValues ?? {},
     aiComment: raw.aiComment ?? null,
     aiCommentAt: raw.aiCommentAt ?? null,
+    aiReviewStatus: raw.aiReviewStatus ?? (raw.aiComment ? "succeeded" : "idle"),
+    aiReviewRequestId: raw.aiReviewRequestId ?? null,
+    aiReviewStartedAt: raw.aiReviewStartedAt ?? null,
+    aiReviewError: raw.aiReviewError ?? null,
     category: cat ? { id: cat.id, name: cat.name } : null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
@@ -109,6 +113,10 @@ export const itemRepository = {
           customValues: input.customValues ?? {},
           aiComment: null,
           aiCommentAt: null,
+          aiReviewStatus: "idle",
+          aiReviewRequestId: null,
+          aiReviewStartedAt: null,
+          aiReviewError: null,
           createdAt: now,
           updatedAt: now,
         },
@@ -129,6 +137,10 @@ export const itemRepository = {
           updatedAt: nowISO(),
           aiComment: null,
           aiCommentAt: null,
+          aiReviewStatus: "idle",
+          aiReviewRequestId: null,
+          aiReviewStartedAt: null,
+          aiReviewError: null,
         };
         if (input.name !== undefined) updated.name = input.name;
         if (input.categoryId !== undefined) updated.categoryId = input.categoryId;
@@ -155,7 +167,15 @@ export const itemRepository = {
       ...data,
       items: data.items.map((item) =>
         item.id === id
-          ? { ...item, aiComment: comment, aiCommentAt: nowISO() }
+          ? {
+            ...item,
+            aiComment: comment,
+            aiCommentAt: nowISO(),
+            aiReviewStatus: "succeeded",
+            aiReviewRequestId: null,
+            aiReviewStartedAt: null,
+            aiReviewError: null,
+          }
           : item
       ),
     }));

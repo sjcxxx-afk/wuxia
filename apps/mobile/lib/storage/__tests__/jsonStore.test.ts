@@ -14,6 +14,12 @@ test("migrates a v1 data file without deletion tombstones", () => {
   expect(migrated.deletedItems).toEqual([]);
   expect(migrated.deletedCategories).toEqual([]);
   expect(migrated.items[0].aiComment).toBeNull();
+  expect(migrated.items[0]).toMatchObject({
+    aiReviewStatus: "idle",
+    aiReviewRequestId: null,
+    aiReviewStartedAt: null,
+    aiReviewError: null,
+  });
 });
 
 test("rejects malformed imported data instead of treating it as empty data", () => {

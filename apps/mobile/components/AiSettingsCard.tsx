@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getOcrSettings, getOcrSettingsAsync, grantAiConsent, revokeAiConsent, saveOcrSettings, type OcrSettings, type PersonalityPreset } from "../lib/ocr/ocrService";
+import { getItemReviewFailureMessage, testItemReviewConnection } from "../lib/ai/itemReviewService";
 import {
   PERSONALITY_CUSTOM_LABEL,
   PERSONALITY_LABELS,
@@ -53,6 +54,7 @@ export default function AiSettingsCard() {
   const [itemReviewFollowPersonality, setItemReviewFollowPersonality] = useState(true);
   const [configured, setConfigured] = useState(false);
   const [consents, setConsents] = useState(getOcrSettings().consents);
+  const [testingReview, setTestingReview] = useState(false);
 
   // 挂载时异步加载持久化的 AI 配置
   useEffect(() => {
@@ -120,6 +122,19 @@ export default function AiSettingsCard() {
   const revokeAllConsents = async () => {
     await revokeAiConsent();
     setConsents({});
+  };
+
+  const handleTestReviewConnection = async () => {
+    if (testingReview) return;
+    setTestingReview(true);
+    const outcome = await testItemReviewConnection();
+    setTestingReview(false);
+    if (outcome.ok) {
+      Alert.alert("评价连接正常", `匣灵已在 ${(outcome.durationMs / 1000).toFixed(1)} 秒内完成测试评价。`);
+      return;
+    }
+    const suffix = outcome.status ? `（HTTP ${outcome.status}）` : "";
+    Alert.alert("评价连接失败", `${getItemReviewFailureMessage(outcome.code, outcome.status)}${suffix}`);
   };
 
   const selectProvider = (p: AIProvider) => {
@@ -277,6 +292,15 @@ export default function AiSettingsCard() {
             </View>
 
             <Text style={styles.privacyHint}>OCR 会发送本地提取的订单文字；匣灵会发送经过本地筛选的物品字段。首次使用时会再次确认。</Text>
+            <TouchableOpacity
+              style={[styles.testBtn, testingReview && styles.testBtnDisabled]}
+              disabled={testingReview}
+              onPress={handleTestReviewConnection}
+            >
+              <Ionicons name="pulse-outline" size={16} color="#4F46E5" />
+              <Text style={styles.testBtnText}>{testingReview ? "正在测试评价连接…" : "测试评价连接"}</Text>
+            </TouchableOpacity>
+            <Text style={styles.testHint}>使用已保存的配置发送固定测试文本，不会上传匣物数据。</Text>
             {Object.keys(consents).length > 0 && <TouchableOpacity onPress={revokeAllConsents}><Text style={styles.revokeText}>撤回全部 AI 数据授权</Text></TouchableOpacity>}
 
             <View style={styles.reviewRow}>
@@ -396,6 +420,21 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   privacyHint: { fontSize: 12, color: "#6B7280", lineHeight: 17, marginTop: -8, marginBottom: 16 },
+  testBtn: {
+    height: 40,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    backgroundColor: "#EEF2FF",
+    marginTop: -4,
+  },
+  testBtnDisabled: { opacity: 0.6 },
+  testBtnText: { color: "#4F46E5", fontSize: 14, fontWeight: "600" },
+  testHint: { fontSize: 11, color: "#6B7280", lineHeight: 16, marginTop: 6, marginBottom: 16 },
   revokeText: { fontSize: 13, color: "#DC2626", fontWeight: "600", marginBottom: 16 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },
