@@ -1,0 +1,32 @@
+node_modules/
+node_modules_old/
+.expo/
+.expo-update-debug/
+web-build/
+dist/
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# Docs / landing (deployed elsewhere)
+/landing
+
+# Codebuddy IDE caches
+.codebuddy/
+.resume_edit/
