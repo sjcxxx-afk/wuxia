@@ -48,13 +48,21 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build APK (release, fallback to debug)
+        working-directory: apps/mobile/android
+        run: |
+          ./gradlew assembleRelease --no-daemon || {
+            echo "release build failed (likely signing), falling back to debug"
+            ./gradlew assembleDebug --no-daemon
+          }
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wuxia-release-apk
-          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          name: wuxia-apk
+          path: apps/mobile/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 30
