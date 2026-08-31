@@ -8,6 +8,10 @@ on:
       - '.github/workflows/build-android.yml'
   workflow_dispatch:
 
+concurrency:
+  group: build-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -45,7 +49,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-34 platforms;android-35 platforms;android-36 build-tools;35.0.0 build-tools;36.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.1.12297006'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -56,9 +60,12 @@ jobs:
       - name: Build APK (release, fallback to debug)
         working-directory: apps/mobile/android
         run: |
-          ./gradlew assembleRelease --no-daemon || {
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
+            --build-cache --stacktrace --no-daemon || {
             echo "release build failed (likely signing), falling back to debug"
-            ./gradlew assembleDebug --no-daemon
+            ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon
           }
 
       - name: Upload APK artifact
