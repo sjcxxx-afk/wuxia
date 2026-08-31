@@ -46,17 +46,19 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install required Android SDK packages
+        shell: bash
         run: |
-          # detect compileSdk / buildTools from the generated build.gradle
-          $appGradle = Get-Content android/app/build.gradle -Raw
-          if (Test-Path android/app/build.gradle.kts) { $appGradle = Get-Content android/app/build.gradle.kts -Raw }
-          $compileSdk = [regex]::Match($appGradle, 'compileSdk\s*=?\s*(\d+)').Groups[1].Value
-          if (-not $compileSdk) { $compileSdk = [regex]::Match($appGradle, 'compileSdkVersion\s*=?\s*(\d+)').Groups[1].Value }
-          if (-not $compileSdk) { $compileSdk = '35' }
-          $buildTools = [regex]::Match($appGradle, 'buildToolsVersion\s*=?\s*"([\d.]+)"').Groups[1].Value
-          if (-not $buildTools) { $buildTools = "$compileSdk.0.0" }
-          Write-Output "compileSdk=$compileSdk buildTools=$buildTools"
-          sdkmanager "platform-tools" "platforms;android-$compileSdk" "build-tools;$buildTools"
+          APP_GRADLE=android/app/build.gradle
+          if [ -f android/app/build.gradle.kts ]; then
+            APP_GRADLE=android/app/build.gradle.kts
+          fi
+          COMPILE_SDK=$(grep -oE 'compileSdk(Versions*)?[\s=]+[0-9]+' "$APP_GRADLE" | grep -oE '[0-9]+$' | head -1)
+          if [ -z "$COMPILE_SDK" ]; then COMPILE_SDK=35; fi
+          BUILD_TOOLS=$(grep -oE 'buildToolsVersion\s*"[^"]+"' "$APP_GRADLE" | grep -oE '[0-9.]+' | head -1)
+          if [ -z "$BUILD_TOOLS" ]; then BUILD_TOOLS="${COMPILE_SDK}.0.0"; fi
+          echo "compileSdk=$COMPILE_SDK buildTools=$BUILD_TOOLS"
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-$COMPILE_SDK" "build-tools;$BUILD_TOOLS"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
