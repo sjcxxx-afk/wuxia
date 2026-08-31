@@ -44,21 +44,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install required Android SDK packages
-        shell: bash
-        run: |
-          APP_GRADLE=android/app/build.gradle
-          if [ -f android/app/build.gradle.kts ]; then
-            APP_GRADLE=android/app/build.gradle.kts
-          fi
-          COMPILE_SDK=$(grep -oE 'compileSdk(Versions*)?[\s=]+[0-9]+' "$APP_GRADLE" | grep -oE '[0-9]+$' | head -1)
-          if [ -z "$COMPILE_SDK" ]; then COMPILE_SDK=35; fi
-          BUILD_TOOLS=$(grep -oE 'buildToolsVersion\s*"[^"]+"' "$APP_GRADLE" | grep -oE '[0-9.]+' | head -1)
-          if [ -z "$BUILD_TOOLS" ]; then BUILD_TOOLS="${COMPILE_SDK}.0.0"; fi
-          echo "compileSdk=$COMPILE_SDK buildTools=$BUILD_TOOLS"
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-$COMPILE_SDK" "build-tools;$BUILD_TOOLS"
+        with:
+          packages: 'platform-tools platforms;android-34 platforms;android-35 platforms;android-36 build-tools;35.0.0 build-tools;36.0.0'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
