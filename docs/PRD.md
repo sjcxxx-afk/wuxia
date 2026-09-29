@@ -1,6 +1,6 @@
 # 物匣 PRD v3
 
-> 更新日期：2026-07-17 | 当前版本 v3.0.0 — 全功能个人物匣
+> 更新日期：2026-09-29 | 当前版本 v3.0.0 — 全功能个人物匣（更新方式已统一为安装包）
 
 ---
 
@@ -38,12 +38,13 @@
 | v1.0 | 2026-05-16 | 基于 Supabase Auth + PostgreSQL 的初始版本 |
 | v2.0 | 2026-05-21 | 去登录化 + JSON 本地存储 + 云盘同步 + OCR/CSV 导入 + 等级系统 |
 | v3.0 | 2026-05-29 | 匣物图片管理 + 分类自定义字段 + 数据统计图表 + 匣灵问答 + 闲置提醒 + OTA 热更新 |
+| v3.0.1（未发布） | 2026-09-29 | 更新方式统一为安装包：移除 expo-updates OTA 热更新与应用内更新横幅 |
 
 ---
 
 ## 二、项目定位
 
-手机 App 个人物匣，基于 **React Native + Expo**，通过 EAS 构建并部署到手机端。
+手机 App 个人物匣，基于 **React Native + Expo**，通过 CNB 云原生构建（GitHub Actions 备份）产出正式签名 APK 并部署到手机端。
 
 - **部署形态**：原生手机 App（Android 为主，iOS 可构建）；**不包含 Web / 浏览器端**
 - 以「物匣」为核心品牌；匣中收录匣物，匣主打理，匣灵应答
@@ -82,7 +83,7 @@
 - ✅ 物匣统计分析（月度消费趋势、分类/平台/状态分布图表）
 - ✅ 闲置提醒（可配置阈值、徽章计数、独立列表）
 - ✅ 匣主等级（6 级成长体系，激励持续使用）
-- ✅ OTA 热更新（在线获取新版本，无需重新安装）
+- ✅ 安装包更新（重新构建 APK 分发，覆盖安装即可升级）
 
 ### 4.2 后续规划
 
@@ -109,11 +110,10 @@
 | 图片选择 | expo-image-picker |
 | 文件选择 | expo-document-picker |
 | Excel 解析 | xlsx 库 |
-| OTA 更新 | expo-updates |
 | 动画 | react-native-reanimated |
 | 开发语言 | TypeScript 6.0 |
 | 部署目标 | 手机 App：Android（主要）/ iOS；不支持 Web |
-| 分发方式 | EAS Build 产出 APK / 安装包；OTA（expo-updates） |
+| 分发方式 | CNB（主）/ GitHub Actions（备份）构建正式签名 APK，用户覆盖安装完成更新 |
 | Android 包名 | com.sjc.wuxia |
 
 ---
@@ -122,7 +122,7 @@
 
 ```
 app/
-├── _layout.tsx              → 根布局（SafeAreaProvider + UpdateBanner + Stack）
+├── _layout.tsx              → 根布局（SafeAreaProvider + Stack）
 ├── index.tsx                → 自动重定向到 /items
 ├── (tabs)/
 │   ├── _layout.tsx          → 底部 Tab 导航（匣中 / 分类 / 搜索 / 匣主）
@@ -166,8 +166,6 @@ src/
 │   └── fileImportService.ts     → CSV/Excel 解析 + 列名自动映射 + 平台推断
 ├── ai/
 │   └── qaService.ts             → 匣灵问答（物匣数据上下文注入 + LLM 对话）
-└── updates/
-    └── useAppUpdates.ts         → expo-updates Hook（启动检查 + 前台检查 + 自动下载）
 
 components/
 ├── ItemForm.tsx                 → 匣物表单（图片选择 + 分类芯片 + 自定义字段动态渲染 + 日期选择器）
@@ -185,7 +183,6 @@ components/
 ├── AiSettingsCard.tsx           → AI 配置卡片（供应商选择 / API Key / Base / Model）
 ├── SyncSettingsCard.tsx         → 同步设置卡片（路径 / 自动开关 / 同步模式 / 手动操作）
 ├── ReminderSettingsCard.tsx     → 闲置提醒阈值卡片
-├── UpdateBanner.tsx             → OTA 更新横幅（检查中 / 下载中 / 就绪）
 ├── IdleReminderBanner.tsx       → 闲置提醒横幅（匣中列表顶部）
 ├── EmptyState.tsx               → 空状态占位
 └── ConfirmDialog.tsx            → 确认弹窗
@@ -469,14 +466,6 @@ components/
 - 同步状态显示：已同步 / 云端有更新
 - 同步策略：按记录级 updatedAt 时间戳对比，取较新版本
 
-**OTA 热更新**（v3 新增）：
-
-- 基于 expo-updates
-- 启动时 + 从后台回到前台时自动检查更新
-- 发现新版本自动后台下载
-- 下载完成后顶部显示绿色横幅"新版本已就绪 · 立即重启"
-- 状态栏显示三种状态：检查中（紫色）/ 下载中（紫色 + 百分比）/ 就绪（绿色）
-
 ---
 
 ## 八、数据结构
@@ -579,10 +568,23 @@ npx expo start --ios      # 直接启动 iOS（需 macOS）
 
 ### 9.2 构建手机安装包
 
+**主路径**：推送到 master（改动命中 `apps/mobile/**`）自动触发 CNB 流水线，或在 CNB 页面点「构建 Android APK」按钮手动触发；构建完成后在该次构建的「制品」里下载 APK。
+
 ```bash
-npx eas build -p android --profile preview   # Android APK（当前主路径）
-# npx eas build -p ios --profile preview     # iOS（按需）
+# 本地出包（需自备 Android SDK + JDK 17）
+cd apps/mobile
+npx expo prebuild --platform android --clean
+node scripts/apply-release-signing.js   # 需要 WUXIA_* 环境变量，否则跳过
+cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
 ```
+
+**签名**：release 包使用正式 keystore（本地 `.secrets/`，CI 侧密钥仓库 / GitHub Secrets），
+`apply-release-signing.js` 负责把模板默认的 debug 签名替换掉；缺密钥即构建失败，不设 debug 兜底。
+
+**更新方式**：项目不接入 OTA，发版即重新构建产出 APK 并分发给用户；用户覆盖安装后本地数据保留。
+原生依赖或 JS 逻辑的任何改动都经此路径生效。
+
+> ⚠️ 首次由调试签名切换到正式签名后，已装设备需先卸载再装新版；请先导出同步数据。
 
 ### 9.3 多设备同步
 
@@ -604,7 +606,6 @@ npx eas build -p android --profile preview   # Android APK（当前主路径）
   "expo-file-system": "~56.0.7",
   "expo-image-picker": "~56.0.17",
   "expo-document-picker": "~56.0.4",
-  "expo-updates": "~56.0.19",
   "expo-constants": "~56.0.17",
   "expo-dev-client": "~56.0.20",
   "expo-font": "^56.0.6",

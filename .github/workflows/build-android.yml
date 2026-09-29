@@ -54,24 +54,50 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Decode release keystore
+        env:
+          WUXIA_KEYSTORE_BASE64: ${{ secrets.WUXIA_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$WUXIA_KEYSTORE_BASE64" ]; then
+            echo "缺少 GitHub Secret: WUXIA_KEYSTORE_BASE64（与 CNB 密钥仓库用同一份内容）"
+            exit 1
+          fi
+          echo "$WUXIA_KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+
+      - name: Apply release signing config
+        env:
+          WUXIA_KEYSTORE_FILE: ${{ github.workspace }}/apps/mobile/android/app/release.keystore
+          WUXIA_KEYSTORE_PASSWORD: ${{ secrets.WUXIA_KEYSTORE_PASSWORD }}
+          WUXIA_KEY_ALIAS: ${{ secrets.WUXIA_KEY_ALIAS }}
+          WUXIA_KEY_PASSWORD: ${{ secrets.WUXIA_KEY_PASSWORD }}
+        run: node scripts/apply-release-signing.js --require
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build APK (release, fallback to debug)
+      # 不做 debug 兜底：兜底会产出与正式包签名不同的 APK，覆盖安装必然失败，
+      # 这种"看起来成功"的构建比直接失败更危险。
+      - name: Build APK (release, signed)
         working-directory: apps/mobile/android
+        env:
+          WUXIA_KEYSTORE_FILE: ${{ github.workspace }}/apps/mobile/android/app/release.keystore
+          WUXIA_KEYSTORE_PASSWORD: ${{ secrets.WUXIA_KEYSTORE_PASSWORD }}
+          WUXIA_KEY_ALIAS: ${{ secrets.WUXIA_KEY_ALIAS }}
+          WUXIA_KEY_PASSWORD: ${{ secrets.WUXIA_KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease \
             -PreactNativeArchitectures=arm64-v8a \
             -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
-            --build-cache --stacktrace --no-daemon || {
-            echo "release build failed (likely signing), falling back to debug"
-            ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon
-          }
+            --build-cache --stacktrace --no-daemon
+
+      - name: Remove keystore from workspace
+        if: always()
+        run: rm -f android/app/release.keystore
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: wuxia-apk
-          path: apps/mobile/android/app/build/outputs/apk/**/*.apk
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30

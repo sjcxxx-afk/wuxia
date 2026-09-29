@@ -1,6 +1,6 @@
 # 物匣 — 技术规范文档 (SPEC v3.0)
 
-> 版本：v3.0.0 | 更新：2026-07-17 | 基于 PRD v3.0 编写
+> 版本：v3.0.0 | 更新：2026-09-29 | 基于 PRD v3.0 编写
 >
 > 品牌用语（与 PRD / UI 对齐）：**物匣**（产品）/ **匣中**（列表）/ **匣物**（单件）/ **匣主**（使用者）/ **匣灵**（AI）/ **入匣·改匣**（增改操作）。代码路由与类型名仍用 `items` / `Item` / `profile`。
 
@@ -22,7 +22,7 @@
 
 ### 1.1 总体架构
 
-> **部署范围**：手机 App（Android 为主，iOS 可构建）。通过 EAS Build 产出安装包，配合 expo-updates 做 OTA。**不支持、不规划 Web / 浏览器端。**
+> **部署范围**：手机 App（Android 为主，iOS 可构建）。通过 CNB 云原生构建（GitHub Actions 备份）产出正式签名安装包分发，版本更新即重新构建并覆盖安装。**不支持、不规划 Web / 浏览器端。**
 
 ```
 ┌──────────────────────────────────────────┐
@@ -37,7 +37,6 @@
 ├──────────────────────────────────────────┤
 │              Infrastructure Layer         │
 │   expo-file-system (JSON + Image I/O)     │
-│   expo-updates (OTA 热更新)               │
 │   expo-image-picker / document-picker     │
 └──────────────────────────────────────────┘
 ```
@@ -47,14 +46,13 @@
 | 类别 | 技术 | 版本 | 选型理由 |
 |------|------|------|----------|
 | **框架** | React Native | 0.85.3 | 手机 App 首选，单套代码覆盖 Android / iOS；活跃社区 + Meta 官方维护。本项目仅部署手机端，不包含 Web |
-| **工具链** | Expo SDK | 56 | 免原生配置的开发体验；托管构建 (EAS)、OTA 更新、插件生态；大幅降低 RN 入门门槛 |
+| **工具链** | Expo SDK | 56 | 免原生配置的开发体验；插件生态丰富；prebuild 出原生工程后可放到任意 CI 构建 |
 | **路由** | expo-router | 56.2 | 文件系统路由（类 Next.js），约定优于配置；支持 Stack/Tabs 嵌套、动态路由、深层链接 |
 | **语言** | TypeScript | 6.0 | 静态类型检查，减少运行时错误；完善的 IDE 智能提示 |
 | **存储** | expo-file-system | 56.0 | 单 JSON 文件方案：零数据库依赖、数据透明可读、云盘友好；适合个人工具的小数据量场景 |
 | **图片** | expo-image-picker | 56.0 | 系统级相册选择，支持多选 + 质量压缩；与 expo-file-system 协同存储 |
 | **文件导入** | expo-document-picker + xlsx | 56.0 / 0.18.5 | 支持 CSV/Excel 解析，客户端的列名自动映射；xlsx 是 JS 生态最成熟的表格解析库 |
 | **动画** | react-native-reanimated | 4.3 | 60fps 原生线程动画，用于图表和 UI 过渡 |
-| **更新** | expo-updates | 56.0 | OTA 热更新：无需应用商店审核即可推送 JS Bundle 更新 |
 | **图标** | @expo/vector-icons | 15.0 | 内置 Ionicons，统一图标风格 |
 
 ### 1.3 未选择的技术及原因
@@ -684,7 +682,7 @@ Authorization: Bearer {apiKey}
 apps/mobile/
 │
 ├── app/                              # expo-router 文件路由（页面层）
-│   ├── _layout.tsx                   # 根布局 (SafeAreaProvider + UpdateBanner + Stack)
+│   ├── _layout.tsx                   # 根布局 (SafeAreaProvider + Stack)
 │   ├── index.tsx                     # 入口 → 重定向 /items
 │   └── (tabs)/
 │       ├── _layout.tsx               # 底部 Tab 导航（匣中 / 分类 / 搜索 / 匣主）
@@ -735,9 +733,6 @@ apps/mobile/
 │   │   ├── personality.ts            # 匣灵性格预设与输出规则
 │   │   ├── warehouseInsights.ts      # 匣中数据本地预计算
 │   │   └── itemReviewService.ts      # 匣物 AI 评价
-│   │
-│   └── updates/                      # 更新服务
-│       └── useAppUpdates.ts          # expo-updates Hook
 │
 ├── components/                       # 可复用 UI 组件
 │   ├── ItemForm.tsx                  # 匣物表单 (核心复合组件)
@@ -755,10 +750,12 @@ apps/mobile/
 │   ├── AiSettingsCard.tsx            # AI 配置卡片
 │   ├── SyncSettingsCard.tsx          # 同步设置卡片
 │   ├── ReminderSettingsCard.tsx      # 闲置提醒设置卡片
-│   ├── UpdateBanner.tsx              # OTA 更新横幅
 │   ├── IdleReminderBanner.tsx        # 闲置提醒横幅
 │   ├── EmptyState.tsx                # 空状态占位
 │   └── ConfirmDialog.tsx             # 确认弹窗
+│
+├── scripts/                         # 构建期脚本（prebuild 之后改原生配置）
+│   └── apply-release-signing.js     # 注入 release 正式签名
 │
 ├── assets/                           # 静态资源
 │   ├── icon.png                      # App 图标
@@ -772,11 +769,10 @@ apps/mobile/
 ├── logs/                             # 构建日志
 │
 ├── app.json                          # Expo 配置
-├── eas.json                          # EAS Build 配置
 ├── package.json                      # 依赖管理
 ├── tsconfig.json                     # TypeScript 配置
 ├── .gitignore                        # Git 忽略规则
-├── AGENTS.md                         # AI Agent 上下文说明
+├── AGENTS.md                         # 品牌用语与编码约定
 ├── README.md                         # 项目说明
 └── CHANGELOG.md                      # 版本变更记录
 ```
@@ -899,7 +895,7 @@ interface OcrSettings {
 ```xml
 READ_EXTERNAL_STORAGE    — 读取云盘同步文件夹
 WRITE_EXTERNAL_STORAGE   — 写入云盘同步文件夹
-INTERNET                 — AI API 调用 + OTA 更新
+INTERNET                 — AI API 调用
 RECORD_AUDIO             — (预留，当前未使用)
 ```
 
@@ -915,45 +911,58 @@ RECORD_AUDIO             — (预留，当前未使用)
 
 本项目仅构建并部署到手机端（Android APK 为主路径；iOS 按需）。不提供 Web 构建或静态站点发布。
 
-### 7.1 构建配置
+### 7.1 构建平台
 
-```json
-// eas.json 构建 profile（手机安装包）
-{
-  "development": { "developmentClient": true, "android": { "buildType": "apk" } },
-  "preview":     { "android": { "buildType": "apk" }, "channel": "preview" },
-  "production":  { "channel": "production" }
-}
+| 项 | 说明 |
+|------|------|
+| 主路径 | CNB（cnb.cool 云原生构建），配置见仓库根 `.cnb.yml` |
+| 备份路径 | GitHub Actions，配置见 `.github/workflows/build-android.yml` |
+| 工具链 | `.cnb/Dockerfile.android`：JDK 17 + Node 22 + SDK 36 + build-tools 36.0.0 + NDK 27.1.12297006，经 `docker:cache` 构建后跨构建节点复用 |
+| 构建步骤 | `npm ci` → `npx expo prebuild --platform android --clean` → 注入正式签名 → `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a` |
+| 产物 | `apps/mobile/android/app/build/outputs/apk/release/*.apk`，作为构建制品上传 |
+
+构建链路不依赖 EAS / Expo 云服务：`expo prebuild` 产出原生工程后由 gradle 自行出包，
+因此 `eas.json`、`.easignore`、`eas-cli` 与 `app.json` 中的 Expo Project ID 均已移除。
+
+### 7.2 版本号规则
+
+| 字段 | 位置 | 规则 |
+|------|------|------|
+| `version` | `app.json` → `expo.version` | 语义化版本（展示用，如 `1.0.0`） |
+| `versionCode` | `app.json` → `expo.android.versionCode` | 整数，**每次发版必须递增**；Android 据此判断能否覆盖安装 |
+
+### 7.3 签名
+
+```
+1. keystore 本地存放于 .secrets/（已 gitignore），CI 侧存放于 CNB 密钥仓库 / GitHub Secrets
+2. 密钥以 base64 经 imports / secrets 注入环境变量 → 构建阶段解码 → 构建结束立即删除
+3. scripts/apply-release-signing.js 在 prebuild 之后把 release buildType
+   由模板自带的 signingConfigs.debug 改为 signingConfigs.release
+4. 缺密钥直接失败（--require）；不设 debug 兜底——签名不同的包无法覆盖安装
 ```
 
-### 7.2 更新通道
+> ⚠️ 首次从调试签名切换到正式签名后，已装设备必须**先卸载再装新版**（Android 不允许签名变更的覆盖安装）。
+> 卸载会清空应用私有目录，请先在「匣主 → 同步」导出数据。
+
+### 7.4 更新流程（安装包）
 
 ```
-development ──▶ 开发调试用，不推送 OTA
-preview     ──▶ 内测版本，可推送 OTA 到 preview channel
-production  ──▶ 正式版本，推送 OTA 到 production channel
+1. 代码提交 → CNB 自动构建（push 命中 apps/mobile/** 等路径），或页面按钮手动触发
+2. 构建完成后从该次构建的「制品」下载 APK
+3. 分发给用户，用户覆盖安装，本地数据保留
+4. 无 OTA 通道：JS 与原生改动一律经新安装包生效
 ```
 
-### 7.3 OTA 更新流程
-
-```
-1. 代码提交 → EAS Update 发布
-2. expo-updates 在 App 启动/回到前台时自动检查
-3. 发现新版本 → 后台静默下载
-4. 下载完成 → UpdateBanner 显示 "新版本已就绪 · 立即重启"
-5. 用户点击 → reloadAsync() 应用更新
-```
-
-### 7.4 版本信息
+### 7.5 版本信息
 
 | 属性 | 值 |
 |------|-----|
 | 部署形态 | 手机 App（非 Web） |
 | App 版本 | 1.0.0 (app.json version) |
+| Android versionCode | 1（每次发版与 version 同步递增） |
 | 功能版本 | v3.0.0 (CHANGELOG 语义化版本) |
 | Android 包名 | com.sjc.wuxia |
-| Expo Project ID | 950b0259-57d0-4392-aaa1-05a181d1567f |
-| Runtime Version | appVersion (跟随 app.json version) |
+| 签名指纹 | SHA1 44:8B:9C:0E:4D:2C:82:55:F1:58:E3:55:97:E6:F2:1E:E9:C0:47:D2 |
 
 ---
 

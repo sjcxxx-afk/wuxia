@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# 本地密钥材料（正式签名 keystore / 密码），绝不入库
+.secrets/
+
 # Expo
 .expo/
 dist/
@@ -21,5 +24,11 @@ logs/
 .vscode/
 .idea/
 
-# Plan files
-.kunsdd/
+# AI agent 工具痕迹
+.claude/
+.codebuddy/
+CLAUDE.md
+
+# 本地临时 / 与项目无关的目录（避免误提交，尤其别把个人文件推到公开仓库）
+.resume_edit/
+.adb-tmp/

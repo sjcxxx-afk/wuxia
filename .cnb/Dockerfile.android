@@ -1,0 +1,67 @@
+# 物匣 —— Android 构建工具链镜像
+#
+# 用途：由 .cnb.yml 里的 docker:cache 内置任务构建，产物镜像保存在远端缓存中跨构建节点复用；
+#       只有本文件内容变化时才会重建，因此可以放心把整套工具链装进镜像。
+#
+# 版本对应关系（必须与 .github/workflows/build-android.yml 以及 Expo SDK 56 的要求一致，
+# 改这里就要同步改那边，否则两个平台产出的包行为不一致）：
+#   JDK           17
+#   Node          22
+#   SDK platform  36
+#   build-tools   36.0.0
+#   NDK           27.1.12297006
+#   cmdline-tools 11076708
+#
+# 若 CNB 构建节点访问 dl.google.com / deb.nodesource.com 过慢或失败，
+# 处理办法见 apps/mobile/README.md 的「构建与发版」→「工具链拉取失败怎么办」。
+
+FROM eclipse-temurin:17-jdk-jammy
+
+ARG ANDROID_SDK_ROOT=/opt/android-sdk
+ARG CMDLINE_TOOLS_VERSION=11076708
+ARG NODE_MAJOR=22
+ARG ANDROID_PLATFORM=android-36
+ARG ANDROID_BUILD_TOOLS=36.0.0
+ARG ANDROID_NDK=27.1.12297006
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT} \
+    ANDROID_HOME=${ANDROID_SDK_ROOT}
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+         ca-certificates curl unzip git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js（NodeSource 官方安装脚本）
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Android 命令行工具
+RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
+    && curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" -o /tmp/cmdline-tools.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-extract \
+    && mv /tmp/cmdline-tools-extract/cmdline-tools "${ANDROID_SDK_ROOT}/cmdline-tools/latest" \
+    && rm -rf /tmp/cmdline-tools.zip /tmp/cmdline-tools-extract
+
+ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+
+# 接受许可并安装本次构建需要的平台、构建工具与 NDK
+RUN yes | sdkmanager --licenses > /dev/null \
+    && sdkmanager --install \
+         "platform-tools" \
+         "platforms;${ANDROID_PLATFORM}" \
+         "build-tools;${ANDROID_BUILD_TOOLS}" \
+         "ndk;${ANDROID_NDK}" > /dev/null \
+    && rm -rf "${ANDROID_SDK_ROOT}/.temp"
+
+# 自检：让问题在镜像构建阶段暴露，而不是等到流水线跑到一半才失败
+RUN java -version \
+    && node --version \
+    && npm --version \
+    && sdkmanager --version \
+    && ls "${ANDROID_SDK_ROOT}/ndk"
+
+WORKDIR /workspace

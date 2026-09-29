@@ -1,0 +1,7 @@
+# 页面手动触发按钮（仅仓库写权限用户可见 / 可点）
+# 这里声明的事件必须在 .cnb.yml 里配置，否则点了没反应。
+branch:
+  - buttons:
+      - name: 构建 Android APK
+        description: 手动触发一次正式签名 APK 构建
+        event: web_trigger

@@ -6,9 +6,14 @@ node_modules_old/
 
 # Expo
 .expo/
+.expo-update-debug/
 dist/
 web-build/
 expo-env.d.ts
+
+# AI agent 工具痕迹
+.claude/
+CLAUDE.md
 
 # Native
 .kotlin/

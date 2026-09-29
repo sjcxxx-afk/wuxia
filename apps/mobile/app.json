@@ -28,14 +28,11 @@
       ]
     ],
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "1443dd3c-52e8-4c83-81e8-bf00ef855957"
-      }
+      "router": {}
     },
-    "owner": "sjc12312",
     "android": {
       "label": "物匣",
+      "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
@@ -50,12 +47,6 @@
         "android.permission.INTERNET",
         "android.permission.RECORD_AUDIO"
       ]
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/1443dd3c-52e8-4c83-81e8-bf00ef855957"
     }
   }
 }

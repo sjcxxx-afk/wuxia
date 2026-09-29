@@ -1,0 +1,93 @@
+# CNB（cnb.cool 云原生构建）流水线：构建「物匣」Android 正式签名 APK
+#
+# 接入前置条件（详见 apps/mobile/README.md 的「构建与发版」一节）：
+#   1. 在 CNB 建一个「密钥仓库」，把本地 .secrets/cnb-secret-repo.yml 的内容粘进去；
+#   2. 把下面 android-apk 锚点里的 imports 地址换成该文件的真实地址；
+#   3. 流水线跑通后，再删掉 .github/workflows/build-android.yml（GitHub 备份）。
+#
+# 触发方式：
+#   - master 分支 push，且改动命中 apps/mobile/** 或本配置；
+#   - 页面「构建 Android APK」按钮（按钮定义在 .cnb/web_trigger.yml）。
+
+# 流水线锚点：push 与手动触发复用同一套配置
+.android-apk: &android-apk
+  name: Build Android APK
+  runner:
+    cpus: 8
+  docker:
+    # 未单独声明 image 的任务（docker:cache、末尾的日志任务）跑在这个轻量镜像里
+    image: node:22-bookworm-slim
+    volumes:
+      # 节点级缓存，声明后跨任务共享：gradle 依赖 + npm 缓存
+      - /root/.gradle:copy-on-write
+      - /root/.npm:copy-on-write
+  # ↓↓↓ 换成你的密钥仓库文件地址，例如
+  #     https://cnb.cool/<你的组织>/<密钥仓库名>/-/blob/main/wuxia-build.yml
+  imports: https://cnb.cool/REPLACE-WITH-YOUR-SECRET-REPO/-/blob/main/wuxia-build.yml
+  stages:
+    - name: 构建 Android 工具链镜像
+      type: docker:cache
+      options:
+        dockerfile: .cnb/Dockerfile.android
+        # 只有该文件变化时才重建镜像
+        by:
+          - .cnb/Dockerfile.android
+      exports:
+        name: ANDROID_TOOLCHAIN_IMAGE
+
+    - name: 生成原生工程并构建签名 APK
+      image: $ANDROID_TOOLCHAIN_IMAGE
+      script: |
+        set -eu
+
+        cd "$CNB_BUILD_WORKSPACE/apps/mobile"
+
+        VERSION=$(node -p "require('./app.json').expo.version")
+        VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+        echo "== 本次构建版本：$VERSION (versionCode $VERSION_CODE) =="
+
+        echo "== 1/5 安装 JS 依赖 =="
+        npm ci --include=dev
+
+        echo "== 2/5 生成 android 原生工程 =="
+        npx expo prebuild --platform android --clean
+
+        echo "== 3/5 从密钥仓库注入的变量解码正式签名密钥 =="
+        KEYSTORE_PATH="$CNB_BUILD_WORKSPACE/apps/mobile/android/app/release.keystore"
+        echo "$WUXIA_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+        export WUXIA_KEYSTORE_FILE="$KEYSTORE_PATH"
+        # 无论成败都在阶段结束时删除密钥，避免残留在构建节点缓存里
+        trap 'rm -f "$KEYSTORE_PATH"' EXIT
+
+        echo "== 4/5 注入 release 签名配置 =="
+        node scripts/apply-release-signing.js --require
+
+        echo "== 5/5 构建 release APK（不做 debug 兜底，签名不对就应当失败）=="
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleRelease \
+          -PreactNativeArchitectures=arm64-v8a \
+          -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
+          --build-cache --no-daemon
+
+    - name: 上传 APK 制品
+      image: cnbcool/attachments:latest
+      settings:
+        attachments:
+          - "apps/mobile/android/app/build/outputs/apk/release/*.apk"
+      exports:
+        FILES: APK_FILES
+
+    - name: 输出制品路径
+      script: echo "已上传制品：$APK_FILES"
+
+master:
+  push:
+    - <<: *android-apk
+      ifModify:
+        - "apps/mobile/**"
+        - ".cnb.yml"
+        - ".cnb/**"
+
+  web_trigger:
+    - <<: *android-apk

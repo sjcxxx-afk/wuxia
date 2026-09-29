@@ -1,0 +1,19 @@
+# 构建在 Linux 侧（CNB / GitHub Actions）执行，以下文件必须保持 LF：
+# Dockerfile 的续行符、YAML 解析、shell shebang 遇到 CRLF 都会出错。
+.cnb.yml                 text eol=lf
+.cnb/**                  text eol=lf
+Dockerfile*              text eol=lf
+*.yml                    text eol=lf
+*.yaml                   text eol=lf
+*.sh                     text eol=lf
+apps/mobile/scripts/**   text eol=lf
+
+# 二进制资源不做行尾转换
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.webp     binary
+*.ttf      binary
+*.jks      binary
+*.keystore binary
