@@ -1,9 +1,9 @@
 # CNB（cnb.cool 云原生构建）流水线：构建「物匣」Android 正式签名 APK
 #
-# 接入前置条件（详见 apps/mobile/README.md 的「构建与发版」一节）：
-#   1. 在 CNB 建一个「密钥仓库」，把本地 .secrets/cnb-secret-repo.yml 的内容粘进去；
-#   2. 把下面 android-apk 锚点里的 imports 地址换成该文件的真实地址；
-#   3. 流水线跑通后，再删掉 .github/workflows/build-android.yml（GitHub 备份）。
+# 密钥仓库：qi_si_miao_xiang/wuxia-build-secret（main 分支的 wuxia-build.yml）
+#   内容为 4 个 WUXIA_* 变量（keystore 的 base64 与密码），只允许在网页编辑、禁止 clone 到本地。
+#   keystore 原件与密码同时备份在本地 .secrets/（已 gitignore）。
+#   接入与重建步骤详见 apps/mobile/README.md 的「构建与发版」一节。
 #
 # 触发方式：
 #   - master 分支 push，且改动命中 apps/mobile/** 或本配置；
@@ -21,9 +21,8 @@
       # 节点级缓存，声明后跨任务共享：gradle 依赖 + npm 缓存
       - /root/.gradle:copy-on-write
       - /root/.npm:copy-on-write
-  # ↓↓↓ 换成你的密钥仓库文件地址，例如
-  #     https://cnb.cool/<你的组织>/<密钥仓库名>/-/blob/main/wuxia-build.yml
-  imports: https://cnb.cool/REPLACE-WITH-YOUR-SECRET-REPO/-/blob/main/wuxia-build.yml
+  # 密钥仓库文件地址：内容被解析为对象并注入为环境变量（WUXIA_*）
+  imports: https://cnb.cool/qi_si_miao_xiang/wuxia-build-secret/-/blob/main/wuxia-build.yml
   stages:
     - name: 构建 Android 工具链镜像
       type: docker:cache

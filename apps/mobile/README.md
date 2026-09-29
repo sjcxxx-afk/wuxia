@@ -72,16 +72,21 @@ apps/mobile/
 **构建平台**：CNB（cnb.cool 云原生构建）为主，GitHub Actions 为备份，两者产出**同一把正式签名**的 APK。
 **更新方式**：不发 OTA。改了代码 → 重新构建 → 把 APK 分发给用户 → 覆盖安装（本地数据保留）。
 
-### CNB 首次接入（四步）
+### CNB 接入配置（已完成，供重建时参考）
 
-0. **把代码推到 CNB**：`git push cnb master`（远端已配置为 `cnb.cool/qi_si_miao_xiang/wuxia`；
-   认证走 HTTPS + 访问令牌、不支持 SSH，详见仓库根 [README.md](../../README.md) 的「远程仓库与发版」）。
-1. **建密钥仓库**：CNB → 新建仓库 → 类型选「密钥仓库」。该类型禁止 clone 到本地、禁止本地推送，
-   只能在网页上编辑——这是特意的限制，把本地 `.secrets/cnb-secret-repo.yml` 的内容整份粘贴进去即可，
-   文件名记为 `wuxia-build.yml`。
-2. **接通流水线**：编辑仓库根目录 [.cnb.yml](../../.cnb.yml)，把 `imports:` 的地址换成该密钥仓库文件的真实地址
-   （形如 `https://cnb.cool/<组织>/<密钥仓库>/-/blob/main/wuxia-build.yml`）。
-3. **跑一次**：在「代码 → 分支详情页 → 构建 Android APK」手动触发；构建产物在该次构建的「制品」里下载。
+| 项 | 值 |
+|------|------|
+| 代码仓库 | `cnb.cool/qi_si_miao_xiang/wuxia`（远端名 `cnb`，默认分支 `master`） |
+| 密钥仓库 | `cnb.cool/qi_si_miao_xiang/wuxia-build-secret`——**禁止 clone 到本地、禁止本地推送，只能在网页编辑**（平台的设计限制，所以没法用 git 读取它） |
+| 密钥文件 | `wuxia-build.yml`（分支 `main`），即 [.cnb.yml](../../.cnb.yml) 中 `imports:` 指向的文件 |
+| 触发方式 | push 命中 `apps/mobile/**` 等路径自动构建；或页面「构建 Android APK」按钮手动触发 |
+
+需从零重建时：① 建组织 → ② 建代码仓库并推送 `master` → ③ 建「密钥仓库」，
+把本地 `.secrets/cnb-secret-repo.yml` 的内容粘成 `wuxia-build.yml` → ④ 把 [.cnb.yml](../../.cnb.yml)
+的 `imports:` 指向该文件 → ⑤ 触发一次构建。
+
+推送代码：`git push cnb master`（认证走 HTTPS + 访问令牌、不支持 SSH，
+详见仓库根 [README.md](../../README.md) 的「远程仓库与发版」）。
 
 触发规则：master 分支 push，且改动命中 `apps/mobile/**`、`.cnb.yml` 或 `.cnb/**` 时自动构建。
 工具链镜像由 [.cnb/Dockerfile.android](../../.cnb/Dockerfile.android) 定义，经 `docker:cache` 构建后跨节点复用，

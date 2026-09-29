@@ -28,6 +28,10 @@
 
 Gitee 已弃用：原来的 `origin` 远端、Gitee Go 流水线配置与对应分支均已移除。
 
+> CNB 侧的签名密钥存放在**密钥仓库** `qi_si_miao_xiang/wuxia-build-secret`——该类型不可 clone、
+> 只能在网页编辑，由 [.cnb.yml](.cnb.yml) 的 `imports:` 引用后注入为环境变量。keystore 原件与密码另在
+> 本地 `.secrets/` 备份（已 gitignore）。
+
 推送到 CNB：
 
 ```bash
