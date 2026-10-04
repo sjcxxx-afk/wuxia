@@ -151,3 +151,7 @@ npx expo start --ios        # 直接运行 iOS（需 macOS）
 - 不要给 release 构建加「失败就退回 debug」的兜底：签名不同的包无法覆盖安装。
 - 发版时把 `app.json` 的 `expo.version` 与 `expo.android.versionCode` 一起递增；`versionCode` 只增不减，
   否则用户装不上新版。
+- **版本号有两套，别混**（详见 [docs/SPEC.md 7.2](../../docs/SPEC.md)）：
+  - **App 版本** = `app.json` 的 `expo.version` / `expo.android.versionCode`，给用户和构建用；
+  - **功能版本** = [CHANGELOG.md](CHANGELOG.md) 顶部版本头，功能里程碑用。
+  - 两者是不同命名空间，**不要求同号**。发版时把 `Unreleased` 改写成对应的功能版本号与日期。

@@ -1,6 +1,8 @@
-# 物匣 — 技术规范文档 (SPEC v3.0)
+# 物匣 — 技术规范文档 (SPEC v4.0)
 
-> 版本：v3.0.0 | 更新：2026-09-29 | 基于 PRD v3.0 编写
+> 版本：v4.0.0 | 更新：2026-10-04 | 基于 PRD v3.0 编写
+>
+> 本文档自身的版本号跟随[功能版本](#72-版本号规则)（与 CHANGELOG 同步），不跟随 `app.json` 的 App 版本。
 >
 > 品牌用语（与 PRD / UI 对齐）：**物匣**（产品）/ **匣中**（列表）/ **匣物**（单件）/ **匣主**（使用者）/ **匣灵**（AI）/ **入匣·改匣**（增改操作）。代码路由与类型名仍用 `items` / `Item` / `profile`。
 
@@ -926,10 +928,17 @@ RECORD_AUDIO             — (预留，当前未使用)
 
 ### 7.2 版本号规则
 
-| 字段 | 位置 | 规则 |
-|------|------|------|
-| `version` | `app.json` → `expo.version` | 语义化版本（展示用，如 `1.0.0`） |
-| `versionCode` | `app.json` → `expo.android.versionCode` | 整数，**每次发版必须递增**；Android 据此判断能否覆盖安装 |
+项目**有意维护两套独立的版本号**，它们处于不同命名空间，不要求同号：
+
+| 线 | 位置 | 作用 | 递增规则 |
+|----|------|------|---------|
+| **App 版本** `version` | `app.json` → `expo.version` | 语义化版本，给用户看（如 `2.0.0`） | 发版时按改动幅度递增（修 bug 末位 +1，加功能中位 +1） |
+| **App 版本** `versionCode` | `app.json` → `expo.android.versionCode` | 整数，Android 据此判断能否覆盖安装 | **每次发版必须 +1，只增不减**；否则用户装不上新版 |
+| **功能版本** | [apps/mobile/CHANGELOG.md](../apps/mobile/CHANGELOG.md) 版本头 | 功能里程碑，记录功能与行为变更 | 有功能或行为变更时递增，与 App 版本独立 |
+
+> ⚠️ 历史上两套号一度脱节：5 月的 v1.0.0/v2.0.0/v3.0.0 只写进了 CHANGELOG，
+> 从未写入 `app.json`（当时该字段缺省，一律显示 Expo 默认的 1.0.0）。
+> 阅读 CHANGELOG 时**不要**把它当作 App 版本。
 
 ### 7.3 签名
 
@@ -958,11 +967,15 @@ RECORD_AUDIO             — (预留，当前未使用)
 | 属性 | 值 |
 |------|-----|
 | 部署形态 | 手机 App（非 Web） |
-| App 版本 | 1.0.0 (app.json version) |
-| Android versionCode | 1（每次发版与 version 同步递增） |
-| 功能版本 | v3.0.0 (CHANGELOG 语义化版本) |
+| App 版本 | 见 [apps/mobile/app.json](../apps/mobile/app.json) → `expo.version`（单一来源，不在此复制） |
+| Android versionCode | 同上 → `expo.android.versionCode` |
+| 功能版本 | 见 [apps/mobile/CHANGELOG.md](../apps/mobile/CHANGELOG.md) 顶部版本头 |
 | Android 包名 | com.sjc.wuxia |
 | 签名指纹 | SHA1 44:8B:9C:0E:4D:2C:82:55:F1:58:E3:55:97:E6:F2:1E:E9:C0:47:D2 |
+
+> 本表只记录**稳定属性**。版本号会随每次发版变动，因此不再复制到这里 ——
+> 过去这里硬编码过「1.0.0 / vc 1」，结果在三次发版后变成了过期快照，
+> 反而误导人以为那就是当前版本。构建日志会打印本次实际版本。
 
 ---
 

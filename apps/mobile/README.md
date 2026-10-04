@@ -113,13 +113,23 @@ CNB 跑通之后，可以直接删掉这个工作流。
 
 ### 版本号
 
-发版时同时递增 [app.json](app.json) 里的两个字段，缺一不可：
+项目有**两套独立的版本号**，别混：
 
-- `expo.version`：语义化版本，给人看的（如 `1.0.1`）；
+| 线 | 位置 | 作用 | 递增时机 |
+|----|------|------|---------|
+| **App 版本** | `app.json` 的 `expo.version` + `expo.android.versionCode` | 给用户看、给构建用 | 每次发版 |
+| **功能版本** | [CHANGELOG.md](CHANGELOG.md) 顶部版本头 | 功能里程碑 | 有功能或行为变更时 |
+
+发版时 [app.json](app.json) 里的两个字段缺一不可：
+
+- `expo.version`：语义化版本，给人看的（如 `2.0.0`）；
 - `expo.android.versionCode`：整数，供 Android 判断能否覆盖安装，**必须只增不减**。
 
 建议：修 bug 时 `version` 末位 +1，加功能时中位 +1，而 `versionCode` 每次发版都 +1。
 构建日志会打印本次的版本，便于事后核对。
+
+CHANGELOG 顶部另有一份「功能版本号」，**它与 `app.json` 的 App 版本无需同号**，
+两者是不同命名空间。规则见 [docs/SPEC.md 7.2](../../docs/SPEC.md)。
 
 ### 工具链拉取失败怎么办
 
