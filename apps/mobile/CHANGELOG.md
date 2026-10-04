@@ -16,6 +16,7 @@
 - 删除分类时清空关联匣物的分类关系
 
 ### Changed
+- 依赖补齐到 Expo SDK 56 官方矩阵的最新补丁：`expo` 56.0.20→56.0.23、`expo-modules-core` 56.0.24→56.0.27、`expo-router` 56.2.19→56.2.21、`expo-constants` 56.0.24→56.0.27、`expo-dev-client` 56.0.25→56.0.27、`expo-image-picker` 56.0.24→56.0.25、`expo-linking` 56.0.17→56.0.18、`expo-splash-screen` 56.0.14→56.0.15、`expo-file-system` 56.0.10→56.0.11（均为 56.x 内部补丁，不跨 SDK 小版本）；`expo install --check` 现已全绿
 - 数据文件升级为兼容的 v2 格式，增加原子写入和最近 3 份本地备份恢复
 - API Key 改用系统安全存储，AI 功能在首次发送数据前请求明确授权
 - 新增类型检查与 Jest 单元测试（CI 质量检查与出包统一改由 CNB / GitHub Actions 承担）
