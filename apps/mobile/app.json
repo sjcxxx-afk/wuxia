@@ -3,7 +3,7 @@
     "name": "物匣",
     "slug": "wuxia",
     "scheme": "wuxia",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -32,7 +32,7 @@
     },
     "android": {
       "label": "物匣",
-      "versionCode": 1,
+      "versionCode": 2,
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",

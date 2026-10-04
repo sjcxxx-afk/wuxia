@@ -43,6 +43,10 @@ jobs:
       - name: Install dependencies (npm ci)
         run: npm ci --include=dev
 
+      # 依赖漂移会产出「装完点开即闪退」的包，所以在 prebuild/出包之前先拦下来
+      - name: Check dependency matrix
+        run: node scripts/check-dependency-matrix.js
+
       - name: Prebuild android project
         run: npx expo prebuild --platform android --clean
 

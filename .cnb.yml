@@ -48,6 +48,9 @@
         echo "== 1/5 安装 JS 依赖 =="
         npm ci --include=dev
 
+        echo "== 1.5/5 依赖矩阵守卫（react 必须与 RN renderer 断言一致、expo 包不得跨 SDK 大版本、原生模块不得装成两份）=="
+        node scripts/check-dependency-matrix.js
+
         echo "== 2/5 生成 android 原生工程 =="
         npx expo prebuild --platform android --clean
 

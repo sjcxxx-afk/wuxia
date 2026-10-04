@@ -8,6 +8,9 @@
 - 显式声明 `android.versionCode`（原先依赖隐式默认值 1），并在构建日志中打印本次版本号
 
 ### Fixed
+- 修复 release 包「装完点开即闪退」：`react` 被 pin 成 19.2.8，而 RN 0.85.3 自带的 renderer 在模块加载时硬性断言 `react` 必须恰好是 19.2.3，首帧挂载原生事件时惰性加载该 renderer 即抛 `Incompatible React versions`（debug 下是红屏，release 下直接退出）。`react` / `react-dom` 回到 19.2.3
+- 修复依赖漂离 Expo SDK 56 官方矩阵：`expo-secure-store` 57.0.2 → 56.0.4；`react-native-screens` 4.25.2（低于 expo-router 要求的 ^4.26.0，导致 node_modules 里同时存在 4.25.2 与嵌套 4.27.0，原生只编进 4.25.2 而 JS 打进 4.27.0）→ ~4.26.0，并 `npm dedupe` 消掉重复；`react-native-gesture-handler` 经 `overrides` 固定到 ~2.31.1（原先被 peer 范围拉到 3.2.1 跨大版本）
+- 新增依赖矩阵守卫 [scripts/check-dependency-matrix.js](scripts/check-dependency-matrix.js)：在 `npm run check` 与两条发版流水线的 `npm ci` 之后拦截 react 版本不一致、expo 包跨 SDK 大版本、原生模块被装成两份这三类漂移，避免再产出「装完即闪退」的包
 - 修复同步导入清空缓存后无法写回，以及同步设置重启后未及时恢复的问题
 - 同步合并支持删除标记，避免已删除的匣物或分类被其他设备重新带回
 - 删除分类时清空关联匣物的分类关系
