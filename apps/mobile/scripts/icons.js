@@ -30,6 +30,7 @@ const OUT_ICON = "assets/icon.png";
 const OUT_ADAPTIVE = "assets/adaptive-icon.png";
 const OUT_MONO = "assets/adaptive-icon-monochrome.png";
 const OUT_AVATAR = "assets/xialing-avatar.png";
+const OUT_SPLASH_MARK = "assets/splash-mark.png";
 
 /** 品牌色，与 lib/theme.ts 的 palette 逐字对应 */
 const BRAND = {
@@ -398,6 +399,19 @@ function main() {
       out: OUT_AVATAR,
       buf: renderSeal(512),
       note: "匣灵头像：朱砂印（search/qa.tsx 的欢迎态使用）",
+    },
+    {
+      // 启动页标记：**必须透明底**。
+      // expo-splash-screen 的 config plugin 会把它当作 windowSplashScreenAnimatedIcon
+      // 叠在 backgroundColor 之上；早先这里用的是满幅应用图标，于是它在纯色底上
+      // 显示成一个带圆角的方块 —— 即「方块套方块」。
+      // 另一层作用：插件在 withAndroidSplashStyles 里**无条件**写
+      // @drawable/splashscreen_logo，而只有配了 image 才会生成该 drawable。
+      // 省略 image 会让 AAPT2 直接报 "resource drawable/splashscreen_logo not found"，
+      // release 构建挂在 :app:processReleaseResources。所以这张图是必需的。
+      out: OUT_SPLASH_MARK,
+      buf: renderIcon(1024, 0.66, BRAND.ink, null),
+      note: "启动页标记：透明底 + 焦墨木匣（叠在 app.json 的 splash backgroundColor 之上）",
     },
   ];
 

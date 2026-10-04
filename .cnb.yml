@@ -54,6 +54,13 @@
         echo "== 2/5 生成 android 原生工程 =="
         npx expo prebuild --platform android --clean
 
+        echo "== 2.5/5 原生资源引用守卫（在 gradle 之前挡住 AAPT2 链接失败）=="
+        # 必须放在 prebuild 之后：这一道要扫描 android/app/src/main/res，
+        # 校验 styles.xml 等 values 文件里的 @drawable/@color/@style 引用都能解析。
+        # 历史事故：splash 配置省略 image，而 expo-splash-screen 仍会无条件引用
+        # @drawable/splashscreen_logo，导致 release 挂在 :app:processReleaseResources。
+        node scripts/check-native-resources.js
+
         echo "== 3/5 从密钥仓库注入的变量解码正式签名密钥 =="
         KEYSTORE_PATH="$CNB_BUILD_WORKSPACE/apps/mobile/android/app/release.keystore"
         echo "$WUXIA_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"

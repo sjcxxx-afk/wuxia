@@ -50,6 +50,12 @@ jobs:
       - name: Prebuild android project
         run: npx expo prebuild --platform android --clean
 
+      # 必须放在 prebuild 之后：要扫描 android/app/src/main/res，
+      # 校验 values 里的 @drawable/@color/@style 引用都能解析，
+      # 避免把 AAPT2 链接失败拖到 gradle 阶段才炸。
+      - name: Check native resource references
+        run: node scripts/check-native-resources.js
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:

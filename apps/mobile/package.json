@@ -7,11 +7,12 @@
     "start": "expo start",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "check": "npm run check:deps && npm run check:theme && npm run check:textures && npm run check:babel && npm run typecheck && npm test",
+    "check": "npm run check:deps && npm run check:theme && npm run check:textures && npm run check:babel && npm run check:native && npm run typecheck && npm test",
     "check:deps": "node scripts/check-dependency-matrix.js",
     "check:theme": "node scripts/check-theme-contrast.js",
     "check:textures": "node scripts/generate-textures.js --check",
     "check:babel": "node scripts/probe-worklets.js",
+    "check:native": "node scripts/check-native-resources.js",
     "generate:textures": "node scripts/generate-textures.js",
     "generate:icons": "node scripts/icons.js",
     "postinstall": "patch-package"

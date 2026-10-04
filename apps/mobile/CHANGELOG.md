@@ -21,10 +21,12 @@
 - 矢量纹理组件 `WoodGrain`（木纹）与 `PaperSurface` / `PaperGrain`（宣纸底 + 墨晕）
 - 资源生成管线：`scripts/generate-textures.js`（零依赖手写 PNG 编码器 + 格点周期化值噪声 fBm，产出可无缝平铺纹理）与 `scripts/icons.js`（有向距离场 SDF 解析抗锯齿绘制品牌标记）
 - 新增三道质量守卫并接入 `npm run check`：`check:theme`（实测所有前景/背景组合的 WCAG 对比度）、`check:textures`（校验磁盘产物与生成器漂移）、`check:babel`（断言 worklet 已被正确改写）
+- 新增 `check:native` 原生资源引用守卫，并接入 CNB（prebuild 后 2.5 步）与 GitHub Actions 两条流水线：校验 splash 配置自洽，以及 `values` 里所有 `@drawable` / `@color` / `@style` 引用均可解析
 - 新增原生依赖：`react-native-svg` 15.15.4、`expo-haptics` ~56.0.3、`expo-image` ~56.0.13
 
 ### Fixed
-- 修复启动页「方块套方块」：`assets/` 下四张图字节完全相同，`splash-icon.png` 实为带圆角与渐变的满幅应用图标，被压在 `#4F46E5` 底色上形成双重方形违和感。`app.json` 移除 splash 图改纯宣纸底，从根上消除该现象
+- **修复 release 构建挂在 `:app:processReleaseResources`（AAPT2 `resource drawable/splashscreen_logo not found`）**：v2.0.0 首次出包时把 `app.json` 的 splash `image` 删掉以消除「方块套方块」，但 `expo-splash-screen` 的 config plugin 自身不对称——`withAndroidSplashStyles.js` **无条件**把 `@drawable/splashscreen_logo` 写进 `styles.xml`，而 `withAndroidSplashImages.js` 只在配了 `image` 时才生成该 drawable（源码注释："If path isn't provided then no new image is placed"）。**省略 `image` 必然产出一次资源链接失败**。改为提供一张透明底的启动页标记 `assets/splash-mark.png`（脚本生成，RGBA），既补回资源又不会重新引入方块
+- 修复启动页「方块套方块」：`assets/` 下四张图字节完全相同，`splash-icon.png` 实为带圆角与渐变的满幅应用图标，被压在 `#4F46E5` 底色上形成双重方形违和感
 - 修复底部导航栏的交互缺失：原先仅颜色变化，无按下态、无图标动画、四个 Tab 之间为硬切。改为矢量木纹木架 + 滑动朱砂标记 + 按压 spring 回弹 + 图标着墨动画 + 字重变化 + `shift` 转场 + `freezeOnBlur` + 轻触感
 - 修复匣灵头像错用应用图标（占位符残留导致 `assets/xialing-avatar.png` 与应用图标字节相同），改为程序生成的朱砂印标记
 - 修复 Android 13+ 主题图标缺失，新增 `adaptive-icon-monochrome.png`（纯黑前景，由系统着色）
