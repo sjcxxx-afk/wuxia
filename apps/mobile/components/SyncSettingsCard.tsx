@@ -22,6 +22,7 @@ import {
   doAutoExport,
 } from "../lib/storage/syncService";
 import { getDataRecoveryState, listBackups, restoreBackup, type BackupInfo } from "../lib/storage/jsonStore";
+import { colors } from "../lib/theme";
 
 type SyncMode = "every_change" | "every_5min" | "every_30min";
 
@@ -206,8 +207,8 @@ export default function SyncSettingsCard() {
         <Switch
           value={autoSync}
           onValueChange={updateAutoSync}
-          trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
-          thumbColor={autoSync ? "#4F46E5" : "#9CA3AF"}
+          trackColor={{ false: colors.border, true: colors.accentSoft }}
+          thumbColor={autoSync ? colors.accent : colors.textTertiary}
         />
       </View>
       {autoSync && <View style={styles.divider} />}
@@ -241,14 +242,14 @@ export default function SyncSettingsCard() {
       {/* Actions */}
       <View style={styles.syncActions}>
         <TouchableOpacity style={styles.syncBtn} onPress={handleExport}>
-          <Ionicons name="cloud-upload-outline" size={16} color="#FFFFFF" />
+          <Ionicons name="cloud-upload-outline" size={16} color={colors.surface} />
           <Text style={styles.syncBtnText}>导出数据</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.syncBtn, styles.importBtn]}
           onPress={handleImport}
         >
-          <Ionicons name="cloud-download-outline" size={16} color="#FFFFFF" />
+          <Ionicons name="cloud-download-outline" size={16} color={colors.surface} />
           <Text style={styles.syncBtnText}>{importing ? "导入中..." : "导入数据"}</Text>
         </TouchableOpacity>
       </View>
@@ -258,7 +259,7 @@ export default function SyncSettingsCard() {
         {backups.map((backup) => (
           <TouchableOpacity key={backup.slot} style={styles.backupRow} onPress={() => handleRestoreBackup(backup)}>
             <Text style={styles.backupText}>恢复备份 {backup.slot}（{new Date(backup.modifiedAt).toLocaleString()}）</Text>
-            <Ionicons name="refresh-outline" size={16} color="#4F46E5" />
+            <Ionicons name="refresh-outline" size={16} color={colors.accent} />
           </TouchableOpacity>
         ))}
       </View>}
@@ -286,7 +287,7 @@ export default function SyncSettingsCard() {
                 可直接选择手机文件夹（推荐），也可手动输入路径/URI
               </Text>
               <TouchableOpacity style={styles.pickFolderBtn} onPress={handlePickFolder}>
-                <Ionicons name="folder-open-outline" size={16} color="#4F46E5" />
+                <Ionicons name="folder-open-outline" size={16} color={colors.accent} />
                 <Text style={styles.pickFolderText}>选择手机文件夹（推荐）</Text>
               </TouchableOpacity>
               <Text style={styles.pathExample}>
@@ -297,7 +298,7 @@ export default function SyncSettingsCard() {
                 value={pathInput}
                 onChangeText={setPathInput}
                 placeholder="/storage/emulated/0/... 或 content://..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 autoCapitalize="none"
               />
               <View style={styles.pathModalBtns}>
@@ -322,61 +323,61 @@ export default function SyncSettingsCard() {
 
 const styles = StyleSheet.create({
   syncCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 12,
   },
   settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  settingLabel: { fontSize: 14, fontWeight: "600", color: "#374151" },
-  settingValue: { fontSize: 13, color: "#4F46E5", maxWidth: 180 },
-  settingHint: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-  divider: { height: 1, backgroundColor: "#F3F4F6" },
+  settingLabel: { fontSize: 14, fontWeight: "600", color: colors.text },
+  settingValue: { fontSize: 13, color: colors.accent, maxWidth: 180 },
+  settingHint: { fontSize: 12, color: colors.textTertiary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: colors.surfaceSunken },
   modeRow: { flexDirection: "row", gap: 8 },
-  modeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: "#F3F4F6", alignItems: "center" },
-  modeBtnActive: { backgroundColor: "#EEF2FF" },
-  modeBtnText: { fontSize: 13, color: "#6B7280" },
-  modeBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
-  syncStatusText: { fontSize: 13, color: "#059669", fontWeight: "500" },
-  syncUpdate: { color: "#D97706" },
+  modeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.surfaceSunken, alignItems: "center" },
+  modeBtnActive: { backgroundColor: colors.accentSoft },
+  modeBtnText: { fontSize: 13, color: colors.textSecondary },
+  modeBtnTextActive: { color: colors.accent, fontWeight: "600" },
+  syncStatusText: { fontSize: 13, color: colors.success, fontWeight: "500" },
+  syncUpdate: { color: colors.warning },
   syncActions: { flexDirection: "row", gap: 10 },
-  syncBtn: { flex: 1, flexDirection: "row", height: 40, backgroundColor: "#4F46E5", borderRadius: 10, justifyContent: "center", alignItems: "center", gap: 6 },
-  importBtn: { backgroundColor: "#059669" },
-  syncBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
-  backupSection: { gap: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6", paddingTop: 12 },
-  recoveryText: { fontSize: 12, color: "#B45309", lineHeight: 18 },
+  syncBtn: { flex: 1, flexDirection: "row", height: 40, backgroundColor: colors.accent, borderRadius: 10, justifyContent: "center", alignItems: "center", gap: 6 },
+  importBtn: { backgroundColor: colors.success },
+  syncBtnText: { color: colors.surface, fontSize: 14, fontWeight: "600" },
+  backupSection: { gap: 8, borderTopWidth: 1, borderTopColor: colors.surfaceSunken, paddingTop: 12 },
+  recoveryText: { fontSize: 12, color: colors.warning, lineHeight: 18 },
   backupRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 },
-  backupText: { fontSize: 12, color: "#4F46E5", flex: 1 },
+  backupText: { fontSize: 12, color: colors.accent, flex: 1 },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
   keyboardAvoiding: { width: "100%", maxHeight: "90%" },
   modalScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
-  modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 16 },
-  pathHint: { fontSize: 13, color: "#6B7280", marginBottom: 4, textAlign: "center" },
+  modalCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: colors.text, textAlign: "center", marginBottom: 16 },
+  pathHint: { fontSize: 13, color: colors.textSecondary, marginBottom: 4, textAlign: "center" },
   pickFolderBtn: {
     marginTop: 6,
     marginBottom: 10,
     height: 40,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#C7D2FE",
-    backgroundColor: "#EEF2FF",
+    borderColor: colors.accentSoft,
+    backgroundColor: colors.accentSoft,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
-  pickFolderText: { fontSize: 13, color: "#4338CA", fontWeight: "600" },
-  pathExample: { fontSize: 12, color: "#9CA3AF", marginBottom: 16, textAlign: "center", fontStyle: "italic" },
-  pathInput: { height: 44, borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, paddingHorizontal: 14, fontSize: 14, color: "#111827", backgroundColor: "#F9FAFB", marginBottom: 12 },
+  pickFolderText: { fontSize: 13, color: colors.accent, fontWeight: "600" },
+  pathExample: { fontSize: 12, color: colors.textTertiary, marginBottom: 16, textAlign: "center", fontStyle: "italic" },
+  pathInput: { height: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, fontSize: 14, color: colors.text, backgroundColor: colors.background, marginBottom: 12 },
   pathModalBtns: { flexDirection: "row", gap: 10 },
-  pathCancelBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },
-  pathCancelText: { fontSize: 15, color: "#6B7280", fontWeight: "600" },
-  pathConfirmBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: "#4F46E5", justifyContent: "center", alignItems: "center" },
-  pathConfirmText: { fontSize: 15, color: "#FFFFFF", fontWeight: "600" },
+  pathCancelBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.surfaceSunken, justifyContent: "center", alignItems: "center" },
+  pathCancelText: { fontSize: 15, color: colors.textSecondary, fontWeight: "600" },
+  pathConfirmBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.accent, justifyContent: "center", alignItems: "center" },
+  pathConfirmText: { fontSize: 15, color: colors.surface, fontWeight: "600" },
 });

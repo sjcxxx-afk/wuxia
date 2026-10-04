@@ -16,6 +16,8 @@ import { ItemSummary } from "../../../lib/types";
 import ItemCard from "../../../components/ItemCard";
 import EmptyState from "../../../components/EmptyState";
 import IdleReminderBanner from "../../../components/IdleReminderBanner";
+import { colors } from "../../../lib/theme";
+import Icon from "../../../components/Icon";
 
 export default function ItemList() {
   const [items, setItems] = useState<ItemSummary[]>([]);
@@ -60,7 +62,7 @@ export default function ItemList() {
             style={styles.reminderBtn}
             onPress={() => router.push("/(tabs)/items/idle")}
           >
-            <Ionicons name="alarm-outline" size={20} color="#D97706" />
+            <Ionicons name="alarm-outline" size={20} color={colors.warning} />
             <View style={styles.reminderBadge}>
               <Text style={styles.reminderBadgeText}>{idleOverdueCount}</Text>
             </View>
@@ -70,10 +72,10 @@ export default function ItemList() {
           style={styles.importBtn}
           onPress={() => setMenuOpen(!menuOpen)}
         >
-          <Ionicons name="cloud-download-outline" size={22} color="#4F46E5" />
+          <Ionicons name="cloud-download-outline" size={22} color={colors.accent} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/(tabs)/items/add")}>
-          <Ionicons name="add-circle" size={32} color="#4F46E5" />
+          <Icon name="ingest" size={32} color={colors.accent} />
         </TouchableOpacity>
       </View>
     </View>
@@ -91,7 +93,7 @@ export default function ItemList() {
           />
         )}
         <EmptyState
-          icon="file-tray-full-outline"
+          icon="chest"
           title="匣中尚空"
           subtitle="点击右上角 + 入匣，或从订单导入"
         />
@@ -178,25 +180,25 @@ function ImportMenu({
       <TouchableOpacity style={menuStyles.overlay} onPress={onClose} activeOpacity={1} />
       <View style={menuStyles.menu}>
         <TouchableOpacity style={menuStyles.option} onPress={onOcr}>
-          <View style={[menuStyles.iconBox, { backgroundColor: "#EEF2FF" }]}>
-            <Ionicons name="scan-outline" size={22} color="#4F46E5" />
+          <View style={[menuStyles.iconBox, { backgroundColor: colors.accentSoft }]}>
+            <Icon name="ocr" size={22} color={colors.accent} />
           </View>
           <View style={menuStyles.optionText}>
             <Text style={menuStyles.optionTitle}>截图识别</Text>
             <Text style={menuStyles.optionDesc}>上传订单截图，AI 自动识别</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </TouchableOpacity>
         <View style={menuStyles.divider} />
         <TouchableOpacity style={menuStyles.option} onPress={onFile}>
-          <View style={[menuStyles.iconBox, { backgroundColor: "#F0FDF4" }]}>
-            <Ionicons name="document-text-outline" size={22} color="#10B981" />
+          <View style={[menuStyles.iconBox, { backgroundColor: colors.successSoft }]}>
+            <Icon name="file" size={22} color={colors.success} />
           </View>
           <View style={menuStyles.optionText}>
             <Text style={menuStyles.optionTitle}>文件导入</Text>
             <Text style={menuStyles.optionDesc}>从 CSV / Excel 批量导入</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -219,10 +221,10 @@ const menuStyles = StyleSheet.create({
     right: 16,
     zIndex: 20,
     width: 260,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -245,13 +247,13 @@ const menuStyles = StyleSheet.create({
     alignItems: "center",
   },
   optionText: { flex: 1 },
-  optionTitle: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  optionDesc: { fontSize: 12, color: "#9CA3AF", marginTop: 1 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: "#F3F4F6", marginHorizontal: 14 },
+  optionTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
+  optionDesc: { fontSize: 12, color: colors.textTertiary, marginTop: 1 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.surfaceSunken, marginHorizontal: 14 },
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -259,11 +261,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: colors.text },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -273,7 +275,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#FFFBEB",
+    backgroundColor: colors.warningSoft,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -284,17 +286,17 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#DC2626",
+    backgroundColor: colors.danger,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
   },
-  reminderBadgeText: { fontSize: 10, fontWeight: "700", color: "#FFFFFF" },
+  reminderBadgeText: { fontSize: 10, fontWeight: "700", color: colors.surface },
   importBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     borderRadius: 10,
     padding: 3,
   },
@@ -312,9 +314,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
   },
-  toggleBtnActive: { backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, boxShadow: "0 1px 2px rgba(0,0,0,0.08)", elevation: 1 },
-  toggleText: { fontSize: 14, color: "#9CA3AF", fontWeight: "500" },
-  toggleTextActive: { color: "#4F46E5", fontWeight: "600" },
+  toggleBtnActive: { backgroundColor: colors.surface, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, boxShadow: "0 1px 2px rgba(0,0,0,0.08)", elevation: 1 },
+  toggleText: { fontSize: 14, color: colors.textTertiary, fontWeight: "500" },
+  toggleTextActive: { color: colors.accent, fontWeight: "600" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -323,6 +325,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 6,
   },
-  sectionHeaderText: { fontSize: 15, fontWeight: "700", color: "#374151" },
-  sectionCount: { fontSize: 13, color: "#9CA3AF" },
+  sectionHeaderText: { fontSize: 15, fontWeight: "700", color: colors.text },
+  sectionCount: { fontSize: 13, color: colors.textTertiary },
 });

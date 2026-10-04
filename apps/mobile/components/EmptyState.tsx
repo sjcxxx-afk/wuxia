@@ -1,20 +1,27 @@
 import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+
+import Icon from "./Icon";
+import type { IconName } from "../lib/icons";
+import { colors } from "../lib/theme";
 
 type Props = {
-  icon?: keyof typeof Ionicons.glyphMap;
+  /**
+   * 图标名。刻意用 `IconName` 而不是原先的 `keyof typeof Ionicons.glyphMap` ——
+   * 后者把底层图标库的 glyph 名直接暴露给所有调用方，换图标库就得全量返工。
+   */
+  icon?: IconName;
   title: string;
   subtitle?: string;
 };
 
 export default function EmptyState({
-  icon = "cube-outline",
+  icon = "chest",
   title,
   subtitle,
 }: Props) {
   return (
     <View style={styles.container}>
-      <Ionicons name={icon} size={56} color="#D1D5DB" />
+      <Icon name={icon} size={56} color={colors.iconMuted} strokeWidth={1.5} />
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
     </View>
@@ -32,13 +39,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     marginTop: 16,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    color: "#D1D5DB",
+    color: colors.textTertiary,
     marginTop: 6,
     textAlign: "center",
   },

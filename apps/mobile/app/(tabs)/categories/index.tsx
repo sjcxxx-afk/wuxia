@@ -8,11 +8,12 @@ import {
   RefreshControl,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { categoryRepository } from "../../../lib/repositories/categoryRepository";
 import { Category } from "../../../lib/types";
 import CategorySheet from "../../../components/CategorySheet";
 import EmptyState from "../../../components/EmptyState";
+import { colors } from "../../../lib/theme";
+import Icon from "../../../components/Icon";
 
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -47,13 +48,13 @@ export default function Categories() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>分类管理</Text>
         <TouchableOpacity onPress={openAdd}>
-          <Ionicons name="add-circle" size={32} color="#4F46E5" />
+          <Icon name="ingest" size={32} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
       {!loading && categories.length === 0 ? (
         <EmptyState
-          icon="grid-outline"
+          icon="shelf"
           title="还没有分类"
           subtitle="点击右上角 + 创建第一个分类"
         />
@@ -67,7 +68,7 @@ export default function Categories() {
           {categories.map((cat) => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.card, { borderLeftColor: cat.color ?? "#4F46E5", borderLeftWidth: 4 }]}
+              style={[styles.card, { borderLeftColor: cat.color ?? colors.accent, borderLeftWidth: 4 }]}
               onPress={() => router.push(`/(tabs)/categories/${cat.id}`)}
               onLongPress={() => openEdit(cat)}
             >
@@ -91,7 +92,7 @@ export default function Categories() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -99,11 +100,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: colors.text },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -112,14 +113,14 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "46%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
     margin: "2%",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
   icon: { fontSize: 32, marginBottom: 8 },
-  name: { fontSize: 14, fontWeight: "600", color: "#374151", textAlign: "center" },
+  name: { fontSize: 14, fontWeight: "600", color: colors.text, textAlign: "center" },
 });

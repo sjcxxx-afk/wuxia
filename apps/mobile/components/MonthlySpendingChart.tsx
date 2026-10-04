@@ -1,4 +1,5 @@
-﻿import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { colors } from "../lib/theme";
 
 type MonthDatum = {
   label: string;  // e.g. "2025-01"
@@ -38,7 +39,7 @@ export default function MonthlySpendingChart({ data, title, maxBars = 12 }: Prop
                 <Text style={styles.barValue}>
                   {d.value >= 10000 ? `${(d.value / 10000).toFixed(1)}万` : `¥${d.value}`}
                 </Text>
-                <View style={[styles.bar, { height, backgroundColor: "#4F46E5" }]} />
+                <View style={[styles.bar, { height, backgroundColor: colors.accent }]} />
                 <Text style={styles.barLabel}>
                   {d.label.slice(5)}月
                 </Text>
@@ -53,21 +54,21 @@ export default function MonthlySpendingChart({ data, title, maxBars = 12 }: Prop
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 10,
   },
-  title: { fontSize: 15, fontWeight: "700", color: "#111827" },
-  empty: { fontSize: 13, color: "#9CA3AF", textAlign: "center", paddingVertical: 24 },
+  title: { fontSize: 15, fontWeight: "700", color: colors.text },
+  empty: { fontSize: 13, color: colors.textTertiary, textAlign: "center", paddingVertical: 24 },
   chartArea: { height: 160, justifyContent: "flex-end" },
   barsRow: { flexDirection: "row", alignItems: "flex-end", gap: 4, justifyContent: "center", flex: 1 },
   barCol: { alignItems: "center", flex: 1, maxWidth: 40, justifyContent: "flex-end" },
-  barValue: { fontSize: 9, color: "#9CA3AF", marginBottom: 2 },
+  barValue: { fontSize: 9, color: colors.textTertiary, marginBottom: 2 },
   bar: { width: "100%", borderRadius: 3, minHeight: 4, maxWidth: 32 },
-  barLabel: { fontSize: 10, color: "#9CA3AF", marginTop: 4 },
+  barLabel: { fontSize: 10, color: colors.textTertiary, marginTop: 4 },
 });

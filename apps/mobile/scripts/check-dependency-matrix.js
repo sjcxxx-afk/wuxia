@@ -28,6 +28,7 @@ const NATIVE_MODULES = [
   "react-native-reanimated",
   "react-native-worklets",
   "react-native-safe-area-context",
+  "react-native-svg",
   "expo-modules-core",
 ];
 

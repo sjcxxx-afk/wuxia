@@ -7,13 +7,14 @@ import {
   StyleSheet,
 } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
 import { categoryRepository } from "../../../lib/repositories/categoryRepository";
 import { ItemSummary } from "../../../lib/types";
 import ItemCard from "../../../components/ItemCard";
 import SearchBar from "../../../components/SearchBar";
 import EmptyState from "../../../components/EmptyState";
+import { colors } from "../../../lib/theme";
+import Icon from "../../../components/Icon";
 
 type Category = { id: string; name: string };
 
@@ -65,7 +66,7 @@ export default function Search() {
           style={styles.aiBtn}
           onPress={() => router.push("/(tabs)/search/qa")}
         >
-          <Ionicons name="sparkles" size={18} color="#4F46E5" />
+          <Icon name="inkDrop" size={18} color={colors.accent} />
           <Text style={styles.aiBtnText}>匣灵</Text>
         </TouchableOpacity>
       </View>
@@ -132,13 +133,13 @@ export default function Search() {
         ListEmptyComponent={
           hasCriteria ? (
             <EmptyState
-              icon="search-outline"
+              icon="search"
               title="匣中未觅得匹配"
               subtitle="试试其他关键词或筛选条件"
             />
           ) : (
             <EmptyState
-              icon="search-outline"
+              icon="search"
               title="寻觅匣中之物"
               subtitle="输入关键词或选择筛选条件即可实时搜索"
             />
@@ -151,7 +152,7 @@ export default function Search() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -159,11 +160,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: colors.text },
   aiBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -171,21 +172,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
   },
-  aiBtnText: { fontSize: 13, fontWeight: "600", color: "#4F46E5" },
-  searchArea: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFFFFF" },
+  aiBtnText: { fontSize: 13, fontWeight: "600", color: colors.accent },
+  searchArea: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface },
   filterSection: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
   filterLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     marginBottom: 8,
   },
   chipWrap: {
@@ -197,9 +198,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
   },
-  chipActive: { backgroundColor: "#EEF2FF" },
-  chipText: { fontSize: 13, color: "#6B7280" },
-  chipTextActive: { color: "#4F46E5", fontWeight: "600" },
+  chipActive: { backgroundColor: colors.accentSoft },
+  chipText: { fontSize: 13, color: colors.textSecondary },
+  chipTextActive: { color: colors.accent, fontWeight: "600" },
 });

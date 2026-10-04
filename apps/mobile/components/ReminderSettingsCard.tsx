@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getReminderSettings, saveReminderSettings } from "../lib/storage/reminderSettings";
+import { colors } from "../lib/theme";
 
 const OPTIONS = [
   { days: 7, label: "7 天" },
@@ -23,7 +24,7 @@ export default function ReminderSettingsCard() {
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconBox}>
-          <Ionicons name="notifications-outline" size={18} color="#D97706" />
+          <Ionicons name="notifications-outline" size={18} color={colors.warning} />
         </View>
         <Text style={styles.title}>闲置提醒</Text>
       </View>
@@ -53,13 +54,13 @@ export default function ReminderSettingsCard() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 10,
   },
   header: {
@@ -71,21 +72,21 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: colors.warningSoft,
     justifyContent: "center",
     alignItems: "center",
   },
-  title: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  desc: { fontSize: 13, color: "#6B7280", lineHeight: 19 },
+  title: { fontSize: 15, fontWeight: "600", color: colors.text },
+  desc: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
   optionsRow: { flexDirection: "row", gap: 8 },
   option: {
     flex: 1,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     alignItems: "center",
   },
-  optionActive: { backgroundColor: "#FEF3C7" },
-  optionText: { fontSize: 13, color: "#6B7280" },
-  optionTextActive: { color: "#D97706", fontWeight: "600" },
+  optionActive: { backgroundColor: colors.warningSoft },
+  optionText: { fontSize: 13, color: colors.textSecondary },
+  optionTextActive: { color: colors.warning, fontWeight: "600" },
 });

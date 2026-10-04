@@ -3,6 +3,35 @@
 ## Unreleased
 
 ### Added
+- **木墨视觉体系**：以「匣就是木头做的」为立意，引入宣纸 / 木 / 墨 / 朱砂四组材质。新增 `lib/theme.ts` 作为设计令牌唯一来源（色板、间距、圆角、阴影、字号、动效、纹理上限），替换此前散落 33 个文件的硬编码色值
+- 木墨图标体系：新增 `lib/icons.ts`（24×24 圆头描边路径库）与 `components/Icon.tsx`，重绘导航四图标（匣中=木匣 / 分类=博古架 / 搜索 / 匣主=钤印）
+- 匣主等级图标由 emoji（📦🔰📚🎯👑🌟）改为「一只木匣逐渐被填满、最后满匣生光」的线性图标
+- 矢量纹理组件 `WoodGrain`（木纹）与 `PaperSurface` / `PaperGrain`（宣纸底 + 墨晕）
+- 资源生成管线：`scripts/generate-textures.js`（零依赖手写 PNG 编码器 + 格点周期化值噪声 fBm，产出可无缝平铺纹理）与 `scripts/icons.js`（有向距离场 SDF 解析抗锯齿绘制品牌标记）
+- 新增三道质量守卫并接入 `npm run check`：`check:theme`（实测所有前景/背景组合的 WCAG 对比度）、`check:textures`（校验磁盘产物与生成器漂移）、`check:babel`（断言 worklet 已被正确改写）
+- 新增原生依赖：`react-native-svg` 15.15.4、`expo-haptics` ~56.0.3、`expo-image` ~56.0.13
+
+### Fixed
+- 修复启动页「方块套方块」：`assets/` 下四张图字节完全相同，`splash-icon.png` 实为带圆角与渐变的满幅应用图标，被压在 `#4F46E5` 底色上形成双重方形违和感。`app.json` 移除 splash 图改纯宣纸底，从根上消除该现象
+- 修复底部导航栏的交互缺失：原先仅颜色变化，无按下态、无图标动画、四个 Tab 之间为硬切。改为矢量木纹木架 + 滑动朱砂标记 + 按压 spring 回弹 + 图标着墨动画 + 字重变化 + `shift` 转场 + `freezeOnBlur` + 轻触感
+- 修复匣灵头像错用应用图标（占位符残留导致 `assets/xialing-avatar.png` 与应用图标字节相同），改为程序生成的朱砂印标记
+- 修复 Android 13+ 主题图标缺失，新增 `adaptive-icon-monochrome.png`（纯黑前景，由系统着色）
+- **补上 `babel.config.js`**：`babel-preset-expo` 不会自动注入 `react-native-worklets/plugin`（实测全量搜索 0 命中）。Reanimated 4 缺该插件时**没有编译期报错**，而是运行时抛 `Tried to synchronarily call a non-worklet function`，release 包无红屏浮层，表现即启动闪退
+
+### Changed
+- 视觉主色由靛蓝 `#4F46E5` 改为朱砂 `#B03A2E`。冷调紫与暖木纹相乘必然发脏；朱砂是水墨中唯一的高彩度色，用量刻意压到极小，仅用于选中态、主操作与角标
+- 纹理强度硬性钳制：木纹 ≤10%、纸纹 ≤6%，48px 以下控件内部禁止放纹理（否则糊成噪点）。这是「木墨」不滑向茶室风的关键约束
+- 图表分类色板收敛为 4 档（`theme.chart`），替换此前 7 个 Tailwind 色随手排列、相邻档难以分辨的写法；四档实测均 ≥4.5:1
+- 资源不再手绘 PNG：图标与纹理全部由脚本生成，可复算、可回归，避免二进制漂移
+- `EmptyState` 的 `icon` 属性类型由 `keyof typeof Ionicons.glyphMap` 收紧为 `IconName`，不再向调用方暴露底层库的 glyph 名
+- 底部导航栏改用 expo-router 自带的 `BottomTabBarProps`（type-only 深路径导入，`@react-navigation/bottom-tabs` 并非直接依赖）
+- `AGENTS.md` 补充「视觉体系」一节，记录材质分工、两条纹理铁律与反例
+
+### Removed
+- 移除 `assets/splash-icon.png`：满幅图标不该充当启动图，改由 `InkSplash.tsx` 在应用内接管过渡
+
+
+### Added
 - 新增 CNB（cnb.cool）云原生构建流水线：`.cnb.yml` + 工具链镜像 `.cnb/Dockerfile.android`（JDK 17 / Node 22 / SDK 36 / NDK 27.1），并支持页面手动触发构建
 - 新增 Android 正式签名：release keystore 生成并接入 CI 密钥注入，`scripts/apply-release-signing.js` 在 prebuild 后替换模板默认的 debug 签名，配套单元测试
 - 显式声明 `android.versionCode`（原先依赖隐式默认值 1），并在构建日志中打印本次版本号

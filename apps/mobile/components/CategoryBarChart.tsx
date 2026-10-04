@@ -1,4 +1,6 @@
-﻿import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+
+import { colors } from "../lib/theme";
 
 type BarDatum = {
   label: string;
@@ -13,7 +15,17 @@ type Props = {
   maxBars?: number;
 };
 
-const COLORS = ["#4F46E5", "#059669", "#D97706", "#DC2626", "#7C3AED", "#0891B2", "#BE185D"];
+/**
+ * 分类色板。原先这里是 7 个 Tailwind 色随手排的；换成 theme 的 chart 色板后，
+ * 相邻两档色相太近会分不清，所以只保留 4 档并按「色相尽量远」排列。
+ * 四档实测都 ≥4.5:1，既能当色块也能当文字色。
+ */
+const COLORS = [
+  colors.chart[0],
+  colors.chart[1],
+  colors.chart[2],
+  colors.chart[3],
+];
 
 export default function CategoryBarChart({ data, title, maxBars = 8 }: Props) {
   const sorted = [...data].sort((a, b) => b.value - a.value).slice(0, maxBars);
@@ -53,17 +65,17 @@ export default function CategoryBarChart({ data, title, maxBars = 8 }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 10,
   },
-  title: { fontSize: 15, fontWeight: "700", color: "#111827", marginBottom: 2 },
-  empty: { fontSize: 13, color: "#9CA3AF", textAlign: "center", paddingVertical: 16 },
+  title: { fontSize: 15, fontWeight: "700", color: colors.text, marginBottom: 2 },
+  empty: { fontSize: 13, color: colors.textTertiary, textAlign: "center", paddingVertical: 16 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -76,11 +88,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   icon: { fontSize: 14 },
-  label: { fontSize: 12, color: "#374151", flexShrink: 1 },
+  label: { fontSize: 12, color: colors.text, flexShrink: 1 },
   barTrack: {
     flex: 1,
     height: 18,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     borderRadius: 4,
     overflow: "hidden",
   },
@@ -89,5 +101,5 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     minWidth: 4,
   },
-  value: { fontSize: 12, fontWeight: "600", color: "#6B7280", width: 32, textAlign: "right" },
+  value: { fontSize: 12, fontWeight: "600", color: colors.textSecondary, width: 32, textAlign: "right" },
 });

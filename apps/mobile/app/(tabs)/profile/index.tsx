@@ -11,6 +11,7 @@ import StatsRow from "../../../components/StatsRow";
 import SyncSettingsCard from "../../../components/SyncSettingsCard";
 import AiSettingsCard from "../../../components/AiSettingsCard";
 import ReminderSettingsCard from "../../../components/ReminderSettingsCard";
+import { colors } from "../../../lib/theme";
 
 export default function ProfileScreen() {
   const [nickname, setNickname] = useState("");
@@ -32,7 +33,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
       <ProfileHeader
         nickname={nickname}
         avatarUrl={avatarUrl}
@@ -49,10 +50,10 @@ export default function ProfileScreen() {
         onPress={() => router.push("/(tabs)/profile/stats")}
       >
         <View style={localStyles.statsIconBox}>
-          <Ionicons name="stats-chart-outline" size={20} color="#4F46E5" />
+          <Ionicons name="stats-chart-outline" size={20} color={colors.accent} />
         </View>
         <Text style={localStyles.statsBtnText}>查看物匣统计</Text>
-        <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       </TouchableOpacity>
 
       <ReminderSettingsCard />
@@ -70,19 +71,19 @@ const localStyles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 10,
   },
   statsIconBox: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     justifyContent: "center",
     alignItems: "center",
   },
-  statsBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#374151" },
+  statsBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: colors.text },
 });

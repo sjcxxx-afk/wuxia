@@ -6,6 +6,7 @@ import { itemRepository } from "../../../lib/repositories/itemRepository";
 import { ItemSummary } from "../../../lib/types";
 import ItemCard from "../../../components/ItemCard";
 import EmptyState from "../../../components/EmptyState";
+import { colors } from "../../../lib/theme";
 
 export default function CategoryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,7 +23,7 @@ export default function CategoryDetail() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/categories")}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>分类</Text>
         <View style={{ width: 24 }} />
@@ -44,7 +45,7 @@ export default function CategoryDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -52,10 +53,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
-  count: { fontSize: 14, color: "#9CA3AF", paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
+  count: { fontSize: 14, color: colors.textTertiary, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
 });

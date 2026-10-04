@@ -7,6 +7,7 @@ import { categoryRepository } from "../../../lib/repositories/categoryRepository
 import { loadData } from "../../../lib/storage/jsonStore";
 import CategoryBarChart from "../../../components/CategoryBarChart";
 import MonthlySpendingChart from "../../../components/MonthlySpendingChart";
+import { colors } from "../../../lib/theme";
 
 export default function StatsPage() {
   const [categoryData, setCategoryData] = useState<{ label: string; value: number; icon: string; color: string }[]>([]);
@@ -24,7 +25,7 @@ export default function StatsPage() {
       // Category distribution
       const catCounts = new Map<string, { count: number; icon: string; color: string }>();
       for (const c of cats) {
-        catCounts.set(c.id, { count: 0, icon: c.icon ?? "📦", color: c.color ?? "#4F46E5" });
+        catCounts.set(c.id, { count: 0, icon: c.icon ?? "📦", color: c.color ?? colors.accent });
       }
       let uncategorized = 0;
       for (const item of data.items) {
@@ -43,7 +44,7 @@ export default function StatsPage() {
         }))
         .filter((d) => d.value > 0);
       if (uncategorized > 0) {
-        catArr.push({ label: "未分类", value: uncategorized, icon: "📦", color: "#9CA3AF" });
+        catArr.push({ label: "未分类", value: uncategorized, icon: "📦", color: colors.textTertiary });
       }
       setCategoryData(catArr);
 
@@ -59,12 +60,12 @@ export default function StatsPage() {
 
       // Status distribution
       const statusColorMap: Record<string, string> = {
-        "使用中": "#059669",
-        "闲置中": "#D97706",
-        "已损坏": "#DC2626",
-        "已出售": "#4F46E5",
-        "已送人": "#7C3AED",
-        "收藏中": "#0891B2",
+        "使用中": colors.success,
+        "闲置中": colors.warning,
+        "已损坏": colors.danger,
+        "已出售": colors.accent,
+        "已送人": colors.accent,
+        "收藏中": colors.chart[3],
       };
       const statusMap = new Map<string, number>();
       for (const item of data.items) {
@@ -75,7 +76,7 @@ export default function StatsPage() {
         Array.from(statusMap.entries()).map(([label, value]) => ({
           label,
           value,
-          color: statusColorMap[label] ?? "#9CA3AF",
+          color: statusColorMap[label] ?? colors.textTertiary,
         }))
       );
 
@@ -104,7 +105,7 @@ export default function StatsPage() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>物匣统计</Text>
         <View style={{ width: 24 }} />
@@ -133,7 +134,7 @@ export default function StatsPage() {
         <CategoryBarChart
           data={platformData.map((d, i) => ({
             ...d,
-            color: ["#4F46E5", "#D97706", "#DC2626", "#059669", "#7C3AED", "#0891B2", "#BE185D"][i % 7],
+            color: [colors.accent, colors.warning, colors.danger, colors.success, colors.accent, colors.chart[3], colors.chart[2]][i % 7],
           }))}
           title="购买平台分布"
           maxBars={6}
@@ -149,7 +150,7 @@ export default function StatsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -157,11 +158,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
   summaryRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -170,13 +171,13 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
-  summaryValue: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  summaryLabel: { fontSize: 12, color: "#9CA3AF", marginTop: 4 },
+  summaryValue: { fontSize: 22, fontWeight: "700", color: colors.text },
+  summaryLabel: { fontSize: 12, color: colors.textTertiary, marginTop: 4 },
 });

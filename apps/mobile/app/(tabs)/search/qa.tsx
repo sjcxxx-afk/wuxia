@@ -19,6 +19,7 @@ import { askQuestion, QaMessage } from "../../../lib/ai/qaService";
 import { getPersonalityLabel } from "../../../lib/ai/personality";
 import { getOcrSettingsAsync, grantAiConsent, hasAiConsent } from "../../../lib/ocr/ocrService";
 import type { PersonalityPreset } from "../../../lib/ocr/ocrService";
+import { colors } from "../../../lib/theme";
 
 const PRESETS = [
   { icon: "📊", label: "物匣概览", question: "给我一个物匣概览，包括总数、总价值和分类分布" },
@@ -110,7 +111,7 @@ export default function QaPage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>匣灵</Text>
         <TouchableOpacity
@@ -120,7 +121,7 @@ export default function QaPage() {
           <Ionicons
             name="trash-outline"
             size={20}
-            color={messages.length > 0 ? "#9CA3AF" : "#E5E7EB"}
+            color={messages.length > 0 ? colors.textTertiary : colors.border}
           />
         </TouchableOpacity>
       </View>
@@ -205,7 +206,7 @@ export default function QaPage() {
               />
             </View>
             <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
-              <ActivityIndicator size="small" color="#4F46E5" />
+              <ActivityIndicator size="small" color={colors.accent} />
             </View>
           </View>
         )}
@@ -218,7 +219,7 @@ export default function QaPage() {
           value={input}
           onChangeText={setInput}
           placeholder="问匣灵点什么..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={500}
           onSubmitEditing={() => send(input)}
@@ -228,7 +229,7 @@ export default function QaPage() {
           onPress={() => send(input)}
           disabled={!input.trim() || loading}
         >
-          <Ionicons name="send" size={18} color="#FFFFFF" />
+          <Ionicons name="send" size={18} color={colors.surface} />
         </TouchableOpacity>
       </View>
     </View>
@@ -236,7 +237,7 @@ export default function QaPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -244,20 +245,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
   // Chat
   chatArea: { flex: 1 },
   chatContent: { padding: 16, paddingBottom: 8 },
   // Welcome
   welcome: { alignItems: "center", paddingTop: 32 },
   welcomeIcon: { width: 88, height: 88, borderRadius: 22, marginBottom: 12 },
-  welcomeTitle: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 6 },
-  welcomeSub: { fontSize: 14, color: "#9CA3AF", textAlign: "center", lineHeight: 20, marginBottom: 8 },
-  personalityHint: { fontSize: 12, color: "#4F46E5", marginBottom: 24 },
+  welcomeTitle: { fontSize: 20, fontWeight: "700", color: colors.text, marginBottom: 6 },
+  welcomeSub: { fontSize: 14, color: colors.textTertiary, textAlign: "center", lineHeight: 20, marginBottom: 8 },
+  personalityHint: { fontSize: 12, color: colors.accent, marginBottom: 24 },
   presetsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, paddingHorizontal: 16 },
   presetChip: {
     flexDirection: "row",
@@ -266,57 +267,57 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
   },
   presetIcon: { fontSize: 16 },
-  presetLabel: { fontSize: 13, color: "#374151", fontWeight: "500" },
+  presetLabel: { fontSize: 13, color: colors.text, fontWeight: "500" },
   // Bubbles
   bubbleRow: { flexDirection: "row", marginBottom: 12, alignItems: "flex-end" },
   bubbleRowUser: { justifyContent: "flex-end" },
   bubbleRowBot: { justifyContent: "flex-start" },
   avatarBot: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     justifyContent: "center", alignItems: "center",
     marginRight: 8,
     overflow: "hidden",
   },
   avatarBotImage: { width: 32, height: 32 },
   bubble: { maxWidth: "80%", borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
-  bubbleUser: { backgroundColor: "#4F46E5", borderBottomRightRadius: 4 },
-  bubbleBot: { backgroundColor: "#FFFFFF", borderBottomLeftRadius: 4, borderWidth: 1, borderColor: "#F3F4F6" },
+  bubbleUser: { backgroundColor: colors.accent, borderBottomRightRadius: 4 },
+  bubbleBot: { backgroundColor: colors.surface, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.surfaceSunken },
   typingBubble: { paddingVertical: 14, paddingHorizontal: 20 },
   bubbleText: { fontSize: 14, lineHeight: 20 },
-  bubbleTextUser: { color: "#FFFFFF" },
-  bubbleTextBot: { color: "#111827" },
+  bubbleTextUser: { color: colors.surface },
+  bubbleTextBot: { color: colors.text },
   // Input
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: colors.surfaceSunken,
     gap: 8,
   },
   input: {
     flex: 1,
     maxHeight: 100,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
+    color: colors.text,
     lineHeight: 20,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#4F46E5",
+    backgroundColor: colors.accent,
     justifyContent: "center",
     alignItems: "center",
   },

@@ -10,29 +10,46 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import Icon from "./Icon";
+import { LEVEL_ICON_NAMES } from "../lib/icons";
+import { colors } from "../lib/theme";
+
+/**
+ * 匣主等级。
+ *
+ * 原先用 emoji（📦🔰📚🎯👑🌟）当等级图标有两个问题：一是 emoji 的彩色塑料感
+ * 与整套线性水墨图标完全割裂；二是它们不承载任何叙事 —— 🎯👑🌟 和「收了多少件物」
+ * 毫无关系。换成「一只木匣逐渐被填满、最后满匣生光」之后，
+ * 图标本身就在讲这个产品要讲的故事。
+ */
 const LEVELS = [
-  { name: "初启匣主", icon: "📦", minItems: 0 },
-  { name: "拾物匣主", icon: "🔰", minItems: 10 },
-  { name: "积物匣主", icon: "📚", minItems: 30 },
-  { name: "理匣师", icon: "🎯", minItems: 60 },
-  { name: "丰匣主人", icon: "👑", minItems: 100 },
-  { name: "万物匣主", icon: "🌟", minItems: 200 },
-];
+  { name: "初启匣主", minItems: 0 },
+  { name: "拾物匣主", minItems: 10 },
+  { name: "积物匣主", minItems: 30 },
+  { name: "理匣师", minItems: 60 },
+  { name: "丰匣主人", minItems: 100 },
+  { name: "万物匣主", minItems: 200 },
+] as const;
+
+/** 等级下标（1 起）→ 图标名 */
+const LEVEL_ICON_BY_INDEX = LEVEL_ICON_NAMES;
 
 function getLevelInfo(totalItems: number) {
-  let current = LEVELS[0];
+  // 同时返回当前等级的下标，等级图标要靠它
+  let currentIndex = 0;
   let next = null;
   for (let i = LEVELS.length - 1; i >= 0; i--) {
     if (totalItems >= LEVELS[i].minItems) {
-      current = LEVELS[i];
+      currentIndex = i;
       next = LEVELS[i + 1] ?? null;
       break;
     }
   }
+  const current = LEVELS[currentIndex];
   const currentMin = current.minItems;
   const nextMin = next ? next.minItems : currentMin + 1;
   const progress = Math.min(1, Math.max(0, (totalItems - currentMin) / (nextMin - currentMin)));
-  return { current, next, progress };
+  return { current, currentIndex, next, progress };
 }
 
 type Props = {
@@ -70,7 +87,7 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
           </Text>
           <Text style={styles.editHint}>点击编辑匣主</Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </TouchableOpacity>
 
       {/* Level Card */}
@@ -79,7 +96,11 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
         onPress={() => setLevelModalVisible(true)}
         activeOpacity={0.8}
       >
-        <Text style={styles.levelIcon}>{levelInfo.current.icon}</Text>
+        <Icon
+          name={LEVEL_ICON_BY_INDEX[levelInfo.currentIndex]}
+          size={30}
+          color={colors.accent}
+        />
         <View style={styles.levelInfo}>
           <Text style={styles.levelName}>{levelInfo.current.name}</Text>
           <View style={styles.progressRow}>
@@ -110,7 +131,12 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
             <Text style={styles.modalTitle}>匣主等级</Text>
             <View style={styles.levelCurrent}>
-              <Text style={styles.levelCurrentIcon}>{levelInfo.current.icon}</Text>
+              <Icon
+                name={LEVEL_ICON_BY_INDEX[levelInfo.currentIndex]}
+                size={52}
+                color={colors.accent}
+                active
+              />
               <Text style={styles.levelCurrentName}>{levelInfo.current.name}</Text>
             </View>
             {levelInfo.next && (
@@ -119,14 +145,18 @@ export default function ProfileHeader({ nickname, avatarUrl, totalItems }: Props
               </Text>
             )}
             <View style={styles.levelList}>
-              {LEVELS.map((lvl) => {
+              {LEVELS.map((lvl, i) => {
                 const isActive = totalItems >= lvl.minItems;
                 return (
                   <View
                     key={lvl.name}
                     style={[styles.levelRow, isActive && styles.levelRowActive]}
                   >
-                    <Text style={styles.levelRowIcon}>{lvl.icon}</Text>
+                    <Icon
+                      name={LEVEL_ICON_BY_INDEX[i]}
+                      size={20}
+                      color={isActive ? colors.accent : colors.iconMuted}
+                    />
                     <Text
                       style={[styles.levelRowName, isActive && styles.levelRowNameActive]}
                     >
@@ -157,24 +187,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
   avatarContainer: { marginRight: 12 },
-  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#F3F4F6" },
+  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.surfaceSunken },
   avatarPlaceholder: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarPlaceholderText: { fontSize: 22, fontWeight: "700", color: "#4F46E5" },
+  avatarPlaceholderText: { fontSize: 22, fontWeight: "700", color: colors.accent },
   headerInfo: { flex: 1 },
-  nickname: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 2 },
-  editHint: { fontSize: 13, color: "#9CA3AF" },
+  nickname: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: 2 },
+  editHint: { fontSize: 13, color: colors.textTertiary },
   // Level card
   levelCard: {
     flexDirection: "row",
@@ -182,35 +212,34 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
     gap: 12,
   },
-  levelIcon: { fontSize: 28 },
   levelInfo: { flex: 1 },
-  levelName: { fontSize: 15, fontWeight: "600", color: "#374151", marginBottom: 4 },
+  levelName: { fontSize: 15, fontWeight: "600", color: colors.text, marginBottom: 4 },
   progressRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  progressBar: { flex: 1, height: 6, backgroundColor: "#F3F4F6", borderRadius: 3 },
-  progressFill: { height: 6, backgroundColor: "#7C3AED", borderRadius: 3 },
-  progressLabel: { fontSize: 12, color: "#9CA3AF", minWidth: 48, textAlign: "right" },
+  progressBar: { flex: 1, height: 6, backgroundColor: colors.surfaceSunken, borderRadius: 3 },
+  progressFill: { height: 6, backgroundColor: colors.accent, borderRadius: 3 },
+  progressLabel: { fontSize: 12, color: colors.textTertiary, minWidth: 48, textAlign: "right" },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
-  modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 16 },
-  modalCloseBtn: { marginTop: 20, height: 44, backgroundColor: "#4F46E5", borderRadius: 10, justifyContent: "center", alignItems: "center" },
-  modalCloseText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
+  modalCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: colors.text, textAlign: "center", marginBottom: 16 },
+  modalCloseBtn: { marginTop: 20, height: 44, backgroundColor: colors.accent, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  modalCloseText: { color: colors.surface, fontSize: 15, fontWeight: "600" },
   // Level modal
   levelCurrent: { alignItems: "center", marginBottom: 12 },
-  levelCurrentIcon: { fontSize: 48, marginBottom: 4 },
-  levelCurrentName: { fontSize: 18, fontWeight: "700", color: "#7C3AED" },
-  progressText: { fontSize: 13, color: "#6B7280", textAlign: "center", marginBottom: 20 },
+  levelCurrentName: { fontSize: 18, fontWeight: "700", color: colors.accent, marginTop: 6 },
+  progressText: { fontSize: 13, color: colors.textSecondary, textAlign: "center", marginBottom: 20 },
   levelList: { gap: 8 },
-  levelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#F9FAFB" },
-  levelRowActive: { backgroundColor: "#F3E8FF" },
-  levelRowIcon: { fontSize: 20, marginRight: 10 },
-  levelRowName: { flex: 1, fontSize: 14, fontWeight: "500", color: "#9CA3AF" },
-  levelRowNameActive: { color: "#7C3AED", fontWeight: "600" },
-  levelRowCount: { fontSize: 13, color: "#9CA3AF" },
+  // gap 10 是原来 levelRowIcon 的 marginRight —— 换成 Icon 组件后
+  // 它自己是个固定尺寸的 View，间距得由父容器的 gap 给
+  levelRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.background },
+  levelRowActive: { backgroundColor: colors.accentSoft },
+  levelRowName: { flex: 1, fontSize: 14, fontWeight: "500", color: colors.textTertiary },
+  levelRowNameActive: { color: colors.accent, fontWeight: "600" },
+  levelRowCount: { fontSize: 13, color: colors.textTertiary },
 });

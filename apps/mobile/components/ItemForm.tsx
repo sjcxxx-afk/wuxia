@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import DatePickerModal from "./DatePickerModal";
 import { categoryRepository } from "../lib/repositories/categoryRepository";
 import type { CustomField } from "../lib/types";
+import { colors } from "../lib/theme";
 
 type Category = { id: string; name: string; customFields: CustomField[] };
 
@@ -191,12 +192,12 @@ export default function ItemForm({
                   style={styles.removeImageBtn}
                   onPress={() => removeImage(index)}
                 >
-                  <Ionicons name="close-circle" size={22} color="#DC2626" />
+                  <Ionicons name="close-circle" size={22} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             ))}
             <TouchableOpacity style={styles.addImageBtn} onPress={pickImages}>
-              <Ionicons name="camera-outline" size={28} color="#9CA3AF" />
+              <Ionicons name="camera-outline" size={28} color={colors.textTertiary} />
               <Text style={styles.addImageText}>添加</Text>
             </TouchableOpacity>
           </View>
@@ -211,7 +212,7 @@ export default function ItemForm({
           value={name}
           onChangeText={setName}
           placeholder="例如：AirPods Pro"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -253,7 +254,7 @@ export default function ItemForm({
                     onPress={() => setShowCustomDatePicker(field.id)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+                    <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
                     <Text
                       style={[
                         styles.dateBtnText,
@@ -283,7 +284,7 @@ export default function ItemForm({
                       ? "例如：128"
                       : `请输入${field.name}`
                   }
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType={
                     field.type === "number" ? "decimal-pad" : "default"
                   }
@@ -302,7 +303,7 @@ export default function ItemForm({
           value={brand}
           onChangeText={setBrand}
           placeholder="例如：Apple"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -314,7 +315,7 @@ export default function ItemForm({
             value={purchasePrice}
             onChangeText={setPurchasePrice}
             placeholder="¥"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="decimal-pad"
           />
         </View>
@@ -325,7 +326,7 @@ export default function ItemForm({
             value={quantity}
             onChangeText={setQuantity}
             placeholder="1"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="number-pad"
           />
         </View>
@@ -339,7 +340,7 @@ export default function ItemForm({
           onPress={() => setShowPurchaseDatePicker(true)}
           activeOpacity={0.7}
         >
-          <Ionicons name="time-outline" size={20} color="#6B7280" />
+          <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
           <Text style={[styles.dateBtnText, !purchaseDate && styles.dateBtnPlaceholder]}>
             {purchaseDate || "点击选择时间"}
           </Text>
@@ -364,7 +365,7 @@ export default function ItemForm({
           value={storeName}
           onChangeText={setStoreName}
           placeholder="例如：Apple Store 官方旗舰店"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -375,7 +376,7 @@ export default function ItemForm({
           value={location}
           onChangeText={setLocation}
           placeholder="例如：卧室衣柜"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -388,7 +389,7 @@ export default function ItemForm({
           value={notes}
           onChangeText={setNotes}
           placeholder="补充说明..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
           multiline
           numberOfLines={3}
           textAlignVertical="top"
@@ -413,18 +414,18 @@ export default function ItemForm({
 
 const styles = StyleSheet.create({
   keyboardAvoiding: { flex: 1 },
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: colors.surface },
   scrollContent: { paddingBottom: 24 },
   fieldGroup: { marginTop: 20, paddingHorizontal: 16 },
   // --- Images ---
   imageRow: { flexDirection: "row", gap: 10 },
   imageBox: { position: "relative" },
-  thumbnail: { width: 80, height: 80, borderRadius: 10, backgroundColor: "#F3F4F6" },
+  thumbnail: { width: 80, height: 80, borderRadius: 10, backgroundColor: colors.surfaceSunken },
   removeImageBtn: {
     position: "absolute",
     top: -6,
     right: -6,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 11,
   },
   addImageBtn: {
@@ -432,42 +433,42 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.background,
     gap: 2,
   },
-  addImageText: { fontSize: 11, color: "#9CA3AF" },
+  addImageText: { fontSize: 11, color: colors.textTertiary },
   // --- Custom Fields ---
   customFieldsSection: {
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: colors.surfaceSunken,
   },
   customFieldsTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4F46E5",
+    color: colors.accent,
     paddingHorizontal: 16,
     marginBottom: 4,
   },
   // --- Shared ---
-  label: { fontSize: 15, fontWeight: "600", color: "#374151", marginBottom: 8 },
+  label: { fontSize: 15, fontWeight: "600", color: colors.text, marginBottom: 8 },
   input: {
     height: 46,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: colors.text,
+    backgroundColor: colors.background,
   },
   textArea: { height: 80, paddingTop: 12 },
-  hint: { fontSize: 13, color: "#9CA3AF", fontStyle: "italic" },
+  hint: { fontSize: 13, color: colors.textTertiary, fontStyle: "italic" },
   row: { flexDirection: "row", marginTop: 20, paddingHorizontal: 16 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
@@ -475,39 +476,39 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  chipActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
-  chipText: { fontSize: 14, color: "#6B7280" },
-  chipTextActive: { color: "#4F46E5", fontWeight: "600" },
+  chipActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  chipText: { fontSize: 14, color: colors.textSecondary },
+  chipTextActive: { color: colors.accent, fontWeight: "600" },
   saveBtn: {
     marginHorizontal: 16,
     marginTop: 32,
     height: 50,
-    backgroundColor: "#4F46E5",
+    backgroundColor: colors.accent,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  saveBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "600" },
+  saveBtnText: { color: colors.surface, fontSize: 17, fontWeight: "600" },
   // --- Date Picker ---
   dateBtn: {
     height: 46,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.background,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
   dateBtnText: {
     fontSize: 15,
-    color: "#111827",
+    color: colors.text,
   },
   dateBtnPlaceholder: {
-    color: "#9CA3AF",
+    color: colors.textTertiary,
   },
 });

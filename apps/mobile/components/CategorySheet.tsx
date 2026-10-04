@@ -13,6 +13,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { categoryRepository } from "../lib/repositories/categoryRepository";
 import { Category } from "../lib/types";
+import { colors } from "../lib/theme";
+import Icon from "../components/Icon";
 
 type Props = {
   visible: boolean;
@@ -21,7 +23,7 @@ type Props = {
   onSaved: () => void;
 };
 
-const COLORS = ["#4F46E5", "#059669", "#D97706", "#DC2626", "#7C3AED", "#0891B2", "#BE185D"];
+const COLORS = [colors.accent, colors.success, colors.warning, colors.danger, colors.accent, colors.chart[3], colors.chart[2]];
 const ICONS = ["📦", "📫", "👔", "👗", "💍", "🎮", "🏃", "🎧", "💪", "🌪", "🎵", "📡"];
 const FIELD_TYPES = [
   { key: "text", label: "文本" },
@@ -34,7 +36,7 @@ type DraftField = { id: string; name: string; type: "text" | "number" | "date"; 
 export default function CategorySheet({ visible, category, onClose, onSaved }: Props) {
   const [name, setName] = useState(category?.name ?? "");
   const [icon, setIcon] = useState(category?.icon ?? "📦");
-  const [color, setColor] = useState(category?.color ?? "#4F46E5");
+  const [color, setColor] = useState(category?.color ?? colors.accent);
   const [loading, setLoading] = useState(false);
 
   // Custom fields state
@@ -47,7 +49,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
     if (visible) {
       setName(category?.name ?? "");
       setIcon(category?.icon ?? "📦");
-      setColor(category?.color ?? "#4F46E5");
+      setColor(category?.color ?? colors.accent);
       setCustomFields(
         (category?.customFields ?? []).map((f) => ({
           id: f.id,
@@ -138,7 +140,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
             <View style={styles.header}>
               <Text style={styles.title}>{category ? "编辑分类" : "新建分类"}</Text>
               <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -147,7 +149,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
               value={name}
               onChangeText={setName}
               placeholder="分类名称"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
             />
 
             <Text style={styles.sectionLabel}>图标</Text>
@@ -185,7 +187,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
               <View style={styles.customFieldsHeader}>
                 <Text style={styles.sectionLabel}>自定义字段</Text>
                 <TouchableOpacity onPress={() => setAddingField(true)}>
-                  <Ionicons name="add-circle-outline" size={20} color="#4F46E5" />
+                  <Icon name="ingest" size={20} color={colors.accent} />
                 </TouchableOpacity>
               </View>
 
@@ -198,7 +200,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
                         <Text style={styles.fieldItemType}>{typeLabel(f.type)}</Text>
                       </View>
                       <TouchableOpacity onPress={() => removeField(f.id)}>
-                        <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -212,7 +214,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
                     value={newFieldName}
                     onChangeText={setNewFieldName}
                     placeholder="字段名"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.textTertiary}
                     autoFocus
                   />
                   <View style={styles.typeRow}>
@@ -253,7 +255,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
           <View style={styles.actions}>
             {category && (
               <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
                 <Text style={styles.deleteText}>删除</Text>
               </TouchableOpacity>
             )}
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -293,39 +295,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 18, fontWeight: "700", color: colors.text },
   input: {
     height: 46,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: colors.text,
+    backgroundColor: colors.background,
     marginBottom: 16,
   },
-  sectionLabel: { fontSize: 14, fontWeight: "600", color: "#6B7280", marginBottom: 8 },
+  sectionLabel: { fontSize: 14, fontWeight: "600", color: colors.textSecondary, marginBottom: 8 },
   chipRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   iconChip: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
     borderColor: "transparent",
   },
-  iconChipActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
+  iconChipActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
   colorChip: { width: 32, height: 32, borderRadius: 16 },
-  colorChipActive: { borderWidth: 3, borderColor: "#111827" },
+  colorChipActive: { borderWidth: 3, borderColor: colors.text },
   // Custom Fields
   customFieldsSection: {
     marginTop: 8,
     marginBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: colors.surfaceSunken,
     paddingTop: 12,
   },
   customFieldsHeader: {
@@ -342,24 +344,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.background,
   },
   fieldItemInfo: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  fieldItemName: { fontSize: 14, color: "#374151", fontWeight: "500" },
+  fieldItemName: { fontSize: 14, color: colors.text, fontWeight: "500" },
   fieldItemType: {
     fontSize: 11,
-    color: "#6B7280",
-    backgroundColor: "#F3F4F6",
+    color: colors.textSecondary,
+    backgroundColor: colors.surfaceSunken,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   addFieldRow: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.background,
     borderRadius: 10,
     padding: 12,
     gap: 8,
@@ -367,34 +369,34 @@ const styles = StyleSheet.create({
   addFieldInput: {
     height: 40,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#FFFFFF",
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   typeRow: { flexDirection: "row", gap: 8 },
   typeBtn: {
     flex: 1,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     alignItems: "center",
   },
-  typeBtnActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
-  typeBtnText: { fontSize: 13, color: "#6B7280" },
-  typeBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
+  typeBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  typeBtnText: { fontSize: 13, color: colors.textSecondary },
+  typeBtnTextActive: { color: colors.accent, fontWeight: "600" },
   addFieldActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 12,
     marginTop: 4,
   },
-  addFieldCancel: { fontSize: 14, color: "#6B7280" },
-  addFieldConfirm: { fontSize: 14, color: "#4F46E5", fontWeight: "600" },
+  addFieldCancel: { fontSize: 14, color: colors.textSecondary },
+  addFieldConfirm: { fontSize: 14, color: colors.accent, fontWeight: "600" },
   // Bottom actions
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 8 },
   deleteBtn: {
@@ -403,15 +405,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: colors.dangerSoft,
     gap: 6,
   },
-  deleteText: { color: "#DC2626", fontWeight: "600", fontSize: 15 },
+  deleteText: { color: colors.danger, fontWeight: "600", fontSize: 15 },
   saveBtn: {
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#4F46E5",
+    backgroundColor: colors.accent,
   },
-  saveText: { color: "#FFFFFF", fontWeight: "600", fontSize: 15 },
+  saveText: { color: colors.surface, fontWeight: "600", fontSize: 15 },
 });

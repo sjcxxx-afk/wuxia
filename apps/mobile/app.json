@@ -3,7 +3,7 @@
     "name": "物匣",
     "slug": "wuxia",
     "scheme": "wuxia",
-    "version": "1.0.2",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,25 +20,27 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#4F46E5",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain"
+          "backgroundColor": "#F2EDE4",
+          "dark": {
+            "backgroundColor": "#F2EDE4"
+          }
         }
-      ]
+      ],
+      "expo-image"
     ],
     "extra": {
       "router": {}
     },
     "android": {
       "label": "物匣",
-      "versionCode": 3,
+      "versionCode": 4,
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#4F46E5",
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "backgroundColor": "#F2EDE4",
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
       "package": "com.sjc.wuxia",
       "permissions": [

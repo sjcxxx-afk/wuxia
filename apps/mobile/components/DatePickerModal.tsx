@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { colors } from "../lib/theme";
 import {
   Modal,
   View,
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 34,
@@ -294,11 +295,11 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  cancelText: { fontSize: 15, color: "#6B7280" },
-  title: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  confirmText: { fontSize: 15, fontWeight: "600", color: "#4F46E5" },
+  cancelText: { fontSize: 15, color: colors.textSecondary },
+  title: { fontSize: 16, fontWeight: "600", color: colors.text },
+  confirmText: { fontSize: 15, fontWeight: "600", color: colors.accent },
   labelRow: {
     flexDirection: "row",
     paddingHorizontal: 24,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     width: COL_DATE_WIDTH,
     textAlign: "center",
     fontSize: 13,
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     fontWeight: "500",
   },
   pickerRow: {
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
     left: 2,
     right: 2,
     height: ITEM_HEIGHT,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     borderRadius: 8,
     zIndex: 0,
   },
@@ -340,10 +341,10 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 17,
-    color: "#9CA3AF",
+    color: colors.textTertiary,
   },
   itemTextSelected: {
-    color: "#4F46E5",
+    color: colors.accent,
     fontWeight: "700",
     fontSize: 18,
   },
@@ -352,8 +353,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     borderRadius: 20,
   },
-  todayBtnText: { fontSize: 14, color: "#374151", fontWeight: "500" },
+  todayBtnText: { fontSize: 14, color: colors.text, fontWeight: "500" },
 });

@@ -7,8 +7,13 @@
     "start": "expo start",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "check": "npm run check:deps && npm run typecheck && npm test",
+    "check": "npm run check:deps && npm run check:theme && npm run check:textures && npm run check:babel && npm run typecheck && npm test",
     "check:deps": "node scripts/check-dependency-matrix.js",
+    "check:theme": "node scripts/check-theme-contrast.js",
+    "check:textures": "node scripts/generate-textures.js --check",
+    "check:babel": "node scripts/probe-worklets.js",
+    "generate:textures": "node scripts/generate-textures.js",
+    "generate:icons": "node scripts/icons.js",
     "postinstall": "patch-package"
   },
   "devDependencies": {
@@ -30,6 +35,8 @@
     "expo-document-picker": "~56.0.4",
     "expo-file-system": "~56.0.11",
     "expo-font": "^56.0.6",
+    "expo-haptics": "~56.0.3",
+    "expo-image": "~56.0.13",
     "expo-image-picker": "~56.0.25",
     "expo-linking": "~56.0.18",
     "expo-modules-core": "~56.0.27",
@@ -43,6 +50,7 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-worklets": "0.8.3",
     "xlsx": "^0.18.5"

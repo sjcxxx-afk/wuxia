@@ -13,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { importFile, ImportRow } from "../../../lib/ocr/fileImportService";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
+import { colors } from "../../../lib/theme";
+import Icon from "../../../components/Icon";
 
 export default function FileImport() {
   const [fileName, setFileName] = useState<string | null>(null);
@@ -117,7 +119,7 @@ export default function FileImport() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color="#111827" />
+          <Ionicons name="close" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>批量导入</Text>
         <View style={{ width: 24 }} />
@@ -126,7 +128,7 @@ export default function FileImport() {
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {/* 选文件区域 */}
         <TouchableOpacity style={styles.pickArea} onPress={pickFile}>
-          <Ionicons name="document-text-outline" size={48} color="#4F46E5" />
+          <Icon name="file" size={48} color={colors.accent} />
           <Text style={styles.pickTitle}>
             {fileName ? fileName : "点击选择文件"}
           </Text>
@@ -141,7 +143,7 @@ export default function FileImport() {
         {/* 加载状态 */}
         {loading && (
           <View style={styles.loadingArea}>
-            <ActivityIndicator size="large" color="#4F46E5" />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>正在解析文件...</Text>
           </View>
         )}
@@ -173,9 +175,9 @@ export default function FileImport() {
                 >
                   <View style={styles.checkbox}>
                     {isSelected ? (
-                      <Ionicons name="checkbox" size={22} color="#4F46E5" />
+                      <Ionicons name="checkbox" size={22} color={colors.accent} />
                     ) : (
-                      <Ionicons name="square-outline" size={22} color="#D1D5DB" />
+                      <Ionicons name="square-outline" size={22} color={colors.textTertiary} />
                     )}
                   </View>
                   <View style={styles.rowInfo}>
@@ -218,7 +220,7 @@ export default function FileImport() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -227,9 +229,9 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
   body: { flex: 1 },
   bodyContent: { padding: 16 },
 
@@ -237,17 +239,17 @@ const styles = StyleSheet.create({
   pickArea: {
     paddingVertical: 32,
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderStyle: "dashed",
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.background,
     gap: 6,
   },
-  pickTitle: { fontSize: 16, fontWeight: "600", color: "#374151", marginTop: 4 },
-  pickSubtitle: { fontSize: 13, color: "#9CA3AF", marginTop: 2 },
-  changeFileText: { fontSize: 13, color: "#4F46E5", marginTop: 4 },
+  pickTitle: { fontSize: 16, fontWeight: "600", color: colors.text, marginTop: 4 },
+  pickSubtitle: { fontSize: 13, color: colors.textTertiary, marginTop: 2 },
+  changeFileText: { fontSize: 13, color: colors.accent, marginTop: 4 },
 
   // 加载
   loadingArea: {
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     gap: 12,
   },
-  loadingText: { fontSize: 14, color: "#6B7280" },
+  loadingText: { fontSize: 14, color: colors.textSecondary },
 
   // 结果区域
   resultSection: { marginTop: 16 },
@@ -265,8 +267,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  toolbarTitle: { fontSize: 15, color: "#374151" },
-  toggleAllText: { fontSize: 14, color: "#4F46E5", fontWeight: "500" },
+  toolbarTitle: { fontSize: 15, color: colors.text },
+  toggleAllText: { fontSize: 14, color: colors.accent, fontWeight: "500" },
 
   // 记录卡片
   rowCard: {
@@ -277,37 +279,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-    backgroundColor: "#FAFAFA",
+    borderColor: colors.surfaceSunken,
+    backgroundColor: colors.background,
   },
   rowCardSelected: {
-    borderColor: "#C7D2FE",
-    backgroundColor: "#EEF2FF",
+    borderColor: colors.accentSoft,
+    backgroundColor: colors.accentSoft,
   },
   checkbox: { marginRight: 10 },
   rowInfo: { flex: 1 },
-  rowName: { fontSize: 15, fontWeight: "500", color: "#111827", marginBottom: 4 },
+  rowName: { fontSize: 15, fontWeight: "500", color: colors.text, marginBottom: 4 },
   rowMeta: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  rowPrice: { fontSize: 13, color: "#EF4444", fontWeight: "600" },
+  rowPrice: { fontSize: 13, color: colors.danger, fontWeight: "600" },
   rowPlatform: {
     fontSize: 12,
-    color: "#4F46E5",
-    backgroundColor: "#EEF2FF",
+    color: colors.accent,
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
     overflow: "hidden",
   },
-  rowDate: { fontSize: 12, color: "#9CA3AF" },
+  rowDate: { fontSize: 12, color: colors.textTertiary },
 
   // 导入按钮
   importBtn: {
     marginTop: 16,
     height: 50,
-    backgroundColor: "#10B981",
+    backgroundColor: colors.success,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  importBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "600" },
+  importBtnText: { color: colors.surface, fontSize: 17, fontWeight: "600" },
 });

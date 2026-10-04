@@ -14,6 +14,7 @@ import { getReminderSettings } from "../../../lib/storage/reminderSettings";
 import { ItemSummary } from "../../../lib/types";
 import ItemCard from "../../../components/ItemCard";
 import EmptyState from "../../../components/EmptyState";
+import { colors } from "../../../lib/theme";
 
 export default function IdleItemsPage() {
   const [items, setItems] = useState<ItemSummary[]>([]);
@@ -32,7 +33,7 @@ export default function IdleItemsPage() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>闲置提醒</Text>
         <View style={{ width: 24 }} />
@@ -40,7 +41,7 @@ export default function IdleItemsPage() {
 
       {!loading && items.length === 0 ? (
         <EmptyState
-          icon="checkmark-circle-outline"
+          icon="chest"
           title="没有待处理的闲置匣物"
           subtitle="所有闲置匣物都在提醒天数以内"
         />
@@ -63,7 +64,7 @@ export default function IdleItemsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -71,14 +72,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
   hint: {
     fontSize: 13,
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     textAlign: "center",
     paddingVertical: 10,
     paddingHorizontal: 16,

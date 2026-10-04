@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { ItemSummary } from "../lib/types";
 import StatusBadge from "./StatusBadge";
+import { colors } from "../lib/theme";
 
 export default function ItemCard({ item }: { item: ItemSummary }) {
   const priceLabel = item.purchasePrice != null ? `¥${Number(item.purchasePrice).toFixed(0)}` : null;
@@ -49,7 +50,7 @@ export default function ItemCard({ item }: { item: ItemSummary }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 16,
@@ -61,24 +62,24 @@ const styles = StyleSheet.create({
     boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
     elevation: 1,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
   row: { flexDirection: "row", alignItems: "center" },
   thumb: {
     width: 64,
     height: 64,
     borderRadius: 10,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
     marginRight: 12,
   },
   info: { flex: 1, marginRight: 12 },
-  name: { fontSize: 16, fontWeight: "600", color: "#111827", marginBottom: 2 },
-  brand: { fontSize: 13, color: "#6B7280", marginBottom: 4 },
+  name: { fontSize: 16, fontWeight: "600", color: colors.text, marginBottom: 2 },
+  brand: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
   meta: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   category: {
     fontSize: 12,
-    color: "#6B7280",
-    backgroundColor: "#F3F4F6",
+    color: colors.textSecondary,
+    backgroundColor: colors.surfaceSunken,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -86,14 +87,14 @@ const styles = StyleSheet.create({
   },
   customBadge: {
     fontSize: 11,
-    color: "#4F46E5",
-    backgroundColor: "#EEF2FF",
+    color: colors.accent,
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
     overflow: "hidden",
   },
-  date: { fontSize: 12, color: "#9CA3AF" },
+  date: { fontSize: 12, color: colors.textTertiary },
   right: { alignItems: "flex-end", justifyContent: "space-between" },
-  price: { fontSize: 15, fontWeight: "700", color: "#111827", marginTop: 6 },
+  price: { fontSize: 15, fontWeight: "700", color: colors.text, marginTop: 6 },
 });

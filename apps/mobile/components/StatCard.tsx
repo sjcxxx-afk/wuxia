@@ -1,4 +1,5 @@
-﻿import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { colors } from "../lib/theme";
 
 type Props = {
   label: string;
@@ -7,7 +8,7 @@ type Props = {
   onPress?: () => void;
 };
 
-export default function StatCard({ label, value, color = "#4F46E5", onPress }: Props) {
+export default function StatCard({ label, value, color = colors.accent, onPress }: Props) {
   if (onPress) {
     return (
       <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -27,13 +28,13 @@ export default function StatCard({ label, value, color = "#4F46E5", onPress }: P
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
   value: { fontSize: 24, fontWeight: "700" },
-  label: { fontSize: 12, color: "#9CA3AF", marginTop: 4 },
+  label: { fontSize: 12, color: colors.textTertiary, marginTop: 4 },
 });

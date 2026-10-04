@@ -18,6 +18,8 @@ import { generateAndSaveItemReview, getItemReviewFailureMessage } from "../../..
 import { Item, CustomField } from "../../../lib/types";
 import StatusBadge from "../../../components/StatusBadge";
 import confirmDialog from "../../../components/ConfirmDialog";
+import { colors } from "../../../lib/theme";
+import Icon from "../../../components/Icon";
 
 export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -119,13 +121,13 @@ export default function ItemDetail() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/items")}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {item.name}
         </Text>
         <TouchableOpacity onPress={handleDelete}>
-          <Ionicons name="trash-outline" size={22} color="#DC2626" />
+          <Ionicons name="trash-outline" size={22} color={colors.danger} />
         </TouchableOpacity>
       </View>
 
@@ -160,7 +162,7 @@ export default function ItemDetail() {
         {showReviewCard && (
           <View style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
-              <Ionicons name="sparkles" size={16} color="#4F46E5" />
+              <Icon name="inkDrop" size={16} color={colors.accent} />
               <Text style={styles.reviewTitle}>匣灵评价</Text>
             </View>
             {item.aiComment ? (
@@ -176,7 +178,7 @@ export default function ItemDetail() {
               <View style={styles.reviewLoading}>
                 {reviewPending ? (
                   <>
-                    <ActivityIndicator size="small" color="#4F46E5" />
+                    <ActivityIndicator size="small" color={colors.accent} />
                     <Text style={styles.reviewLoadingText}>匣灵正在评价…已等待 {reviewElapsedSeconds} 秒</Text>
                   </>
                 ) : item.aiReviewStatus === "failed" && item.aiReviewError ? (
@@ -227,7 +229,7 @@ export default function ItemDetail() {
           style={styles.editBtn}
           onPress={() => router.push(`/(tabs)/items/edit/${item.id}`)}
         >
-          <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+          <Ionicons name="create-outline" size={18} color={colors.surface} />
           <Text style={styles.editBtnText}>改匣</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -258,8 +260,8 @@ export default function ItemDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  loading: { textAlign: "center", marginTop: 100, color: "#9CA3AF" },
+  container: { flex: 1, backgroundColor: colors.background },
+  loading: { textAlign: "center", marginTop: 100, color: colors.textTertiary },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -267,11 +269,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: "600", color: "#111827", textAlign: "center", marginHorizontal: 12 },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: "600", color: colors.text, textAlign: "center", marginHorizontal: 12 },
   body: { flex: 1 },
   imageGallery: {
     maxHeight: 180,
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 12,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.surfaceSunken,
   },
   titleRow: {
     flexDirection: "row",
@@ -291,15 +293,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 16,
   },
-  itemName: { fontSize: 22, fontWeight: "700", color: "#111827", flex: 1, marginRight: 12 },
+  itemName: { fontSize: 22, fontWeight: "700", color: colors.text, flex: 1, marginRight: 12 },
   reviewCard: {
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#C7D2FE",
+    borderColor: colors.accentSoft,
   },
   reviewHeader: {
     flexDirection: "row",
@@ -310,16 +312,16 @@ const styles = StyleSheet.create({
   reviewTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4F46E5",
+    color: colors.accent,
   },
   reviewText: {
     fontSize: 14,
-    color: "#374151",
+    color: colors.text,
     lineHeight: 22,
   },
   reviewTime: {
     fontSize: 11,
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     marginTop: 8,
   },
   reviewLoading: {
@@ -333,26 +335,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: "#4F46E5",
+    backgroundColor: colors.accent,
   },
-  retryReviewText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+  retryReviewText: { color: colors.surface, fontSize: 13, fontWeight: "600" },
   reviewLoadingText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
   customSectionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4F46E5",
+    color: colors.accent,
     marginBottom: 8,
   },
   field: {
@@ -360,10 +362,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F9FAFB",
+    borderBottomColor: colors.background,
   },
-  fieldLabel: { fontSize: 14, color: "#9CA3AF", flex: 1 },
-  fieldValue: { fontSize: 14, color: "#111827", fontWeight: "500", flex: 2, textAlign: "right" },
+  fieldLabel: { fontSize: 14, color: colors.textTertiary, flex: 1 },
+  fieldValue: { fontSize: 14, color: colors.text, fontWeight: "500", flex: 2, textAlign: "right" },
   editBtn: {
     flexDirection: "row",
     justifyContent: "center",
@@ -372,11 +374,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 40,
     height: 48,
-    backgroundColor: "#4F46E5",
+    backgroundColor: colors.accent,
     borderRadius: 12,
     gap: 8,
   },
-  editBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  editBtnText: { color: colors.surface, fontSize: 16, fontWeight: "600" },
   fullImageOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.9)",

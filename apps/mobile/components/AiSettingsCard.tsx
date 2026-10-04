@@ -14,6 +14,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getOcrSettings, getOcrSettingsAsync, grantAiConsent, revokeAiConsent, saveOcrSettings, type OcrSettings, type PersonalityPreset } from "../lib/ocr/ocrService";
 import { getItemReviewFailureMessage, testItemReviewConnection } from "../lib/ai/itemReviewService";
+import { colors } from "../lib/theme";
+import Icon from "../components/Icon";
 import {
   PERSONALITY_CUSTOM_LABEL,
   PERSONALITY_LABELS,
@@ -152,7 +154,7 @@ export default function AiSettingsCard() {
       <TouchableOpacity style={styles.ocrCard} onPress={openModal}>
         <View style={styles.settingRow}>
           <View style={styles.ocrIconBox}>
-            <Ionicons name="sparkles" size={20} color="#4F46E5" />
+            <Icon name="inkDrop" size={20} color={colors.accent} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.ocrTitle}>AI 配置</Text>
@@ -162,7 +164,7 @@ export default function AiSettingsCard() {
                 : "匣灵、截图识别与评价 · 点击设置"}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </View>
       </TouchableOpacity>
 
@@ -212,7 +214,7 @@ export default function AiSettingsCard() {
               value={apiKey}
               onChangeText={setApiKey}
               placeholder={configured ? "已安全保存；输入新 Key 可替换" : "sk-..."}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               secureTextEntry
             />
             <Text style={styles.privacyHint}>密钥仅保存在设备安全存储中，不会导出到同步文件。</Text>
@@ -223,7 +225,7 @@ export default function AiSettingsCard() {
               value={apiBase}
               onChangeText={setApiBase}
               placeholder="https://api.openai.com/v1"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               autoCapitalize="none"
             />
 
@@ -233,7 +235,7 @@ export default function AiSettingsCard() {
               value={model}
               onChangeText={setModel}
               placeholder="gpt-4o-mini"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               autoCapitalize="none"
             />
 
@@ -268,7 +270,7 @@ export default function AiSettingsCard() {
                   value={personalityCustom}
                   onChangeText={setPersonalityCustom}
                   placeholder="像管家一样称呼我为匣主…"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   multiline
                   maxLength={200}
                 />
@@ -286,8 +288,8 @@ export default function AiSettingsCard() {
               <Switch
                 value={itemReviewEnabled}
                 onValueChange={toggleReview}
-                trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
-                thumbColor={itemReviewEnabled ? "#4F46E5" : "#9CA3AF"}
+                trackColor={{ false: colors.border, true: colors.accentSoft }}
+                thumbColor={itemReviewEnabled ? colors.accent : colors.textTertiary}
               />
             </View>
 
@@ -297,7 +299,7 @@ export default function AiSettingsCard() {
               disabled={testingReview}
               onPress={handleTestReviewConnection}
             >
-              <Ionicons name="pulse-outline" size={16} color="#4F46E5" />
+              <Ionicons name="pulse-outline" size={16} color={colors.accent} />
               <Text style={styles.testBtnText}>{testingReview ? "正在测试评价连接…" : "测试评价连接"}</Text>
             </TouchableOpacity>
             <Text style={styles.testHint}>使用已保存的配置发送固定测试文本，不会上传匣物数据。</Text>
@@ -313,8 +315,8 @@ export default function AiSettingsCard() {
               <Switch
                 value={itemReviewFollowPersonality}
                 onValueChange={setItemReviewFollowPersonality}
-                trackColor={{ false: "#E5E7EB", true: "#C7D2FE" }}
-                thumbColor={itemReviewFollowPersonality ? "#4F46E5" : "#9CA3AF"}
+                trackColor={{ false: colors.border, true: colors.accentSoft }}
+                thumbColor={itemReviewFollowPersonality ? colors.accent : colors.textTertiary}
               />
             </View>
 
@@ -340,71 +342,71 @@ export default function AiSettingsCard() {
 
 const styles = StyleSheet.create({
   ocrCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: colors.surfaceSunken,
   },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   ocrIconBox: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
     justifyContent: "center",
     alignItems: "center",
   },
-  ocrTitle: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  ocrDesc: { fontSize: 13, color: "#6B7280", lineHeight: 19 },
+  ocrTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
+  ocrDesc: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 32 },
   keyboardAvoiding: { width: "100%", maxHeight: "90%" },
   modalScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
-  modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 16 },
-  fieldLabel: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 6 },
+  modalCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: "100%", maxWidth: 340 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: colors.text, textAlign: "center", marginBottom: 16 },
+  fieldLabel: { fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 6 },
   providerRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  providerBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center", backgroundColor: "#FFFFFF" },
-  providerBtnActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
-  providerBtnText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
-  providerBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
+  providerBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: colors.border, alignItems: "center", backgroundColor: colors.surface },
+  providerBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  providerBtnText: { fontSize: 14, color: colors.textSecondary, fontWeight: "500" },
+  providerBtnTextActive: { color: colors.accent, fontWeight: "600" },
   personalityRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   personalityBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  personalityBtnActive: { borderColor: "#4F46E5", backgroundColor: "#EEF2FF" },
-  personalityBtnText: { fontSize: 13, color: "#6B7280", fontWeight: "500" },
-  personalityBtnTextActive: { color: "#4F46E5", fontWeight: "600" },
+  personalityBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  personalityBtnText: { fontSize: 13, color: colors.textSecondary, fontWeight: "500" },
+  personalityBtnTextActive: { color: colors.accent, fontWeight: "600" },
   customPersonalityInput: {
     minHeight: 72,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: colors.text,
+    backgroundColor: colors.background,
     textAlignVertical: "top",
   },
-  customHint: { fontSize: 12, color: "#9CA3AF", textAlign: "right", marginTop: -8, marginBottom: 16 },
+  customHint: { fontSize: 12, color: colors.textTertiary, textAlign: "right", marginTop: -8, marginBottom: 16 },
   fieldInput: {
     height: 44,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: colors.text,
+    backgroundColor: colors.background,
     marginBottom: 16,
   },
   reviewRow: {
@@ -415,11 +417,11 @@ const styles = StyleSheet.create({
   },
   reviewHint: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: colors.textTertiary,
     marginTop: 4,
     lineHeight: 17,
   },
-  privacyHint: { fontSize: 12, color: "#6B7280", lineHeight: 17, marginTop: -8, marginBottom: 16 },
+  privacyHint: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: -8, marginBottom: 16 },
   testBtn: {
     height: 40,
     flexDirection: "row",
@@ -428,17 +430,17 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#C7D2FE",
-    backgroundColor: "#EEF2FF",
+    borderColor: colors.accentSoft,
+    backgroundColor: colors.accentSoft,
     marginTop: -4,
   },
   testBtnDisabled: { opacity: 0.6 },
-  testBtnText: { color: "#4F46E5", fontSize: 14, fontWeight: "600" },
-  testHint: { fontSize: 11, color: "#6B7280", lineHeight: 16, marginTop: 6, marginBottom: 16 },
-  revokeText: { fontSize: 13, color: "#DC2626", fontWeight: "600", marginBottom: 16 },
+  testBtnText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
+  testHint: { fontSize: 11, color: colors.textSecondary, lineHeight: 16, marginTop: 6, marginBottom: 16 },
+  revokeText: { fontSize: 13, color: colors.danger, fontWeight: "600", marginBottom: 16 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" },
-  cancelBtnText: { fontSize: 15, color: "#6B7280", fontWeight: "600" },
-  confirmBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: "#4F46E5", justifyContent: "center", alignItems: "center" },
-  confirmBtnText: { fontSize: 15, color: "#FFFFFF", fontWeight: "600" },
+  cancelBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: colors.surfaceSunken, justifyContent: "center", alignItems: "center" },
+  cancelBtnText: { fontSize: 15, color: colors.textSecondary, fontWeight: "600" },
+  confirmBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: colors.accent, justifyContent: "center", alignItems: "center" },
+  confirmBtnText: { fontSize: 15, color: colors.surface, fontWeight: "600" },
 });

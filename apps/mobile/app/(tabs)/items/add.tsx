@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { itemRepository } from "../../../lib/repositories/itemRepository";
 import { saveImages } from "../../../lib/storage/imageStore";
 import ItemForm from "../../../components/ItemForm";
+import { colors } from "../../../lib/theme";
 
 export default function AddItem() {
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export default function AddItem() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/items")}>
-          <Ionicons name="close" size={24} color="#111827" />
+          <Ionicons name="close" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>入匣</Text>
         <View style={{ width: 24 }} />
@@ -55,7 +56,7 @@ export default function AddItem() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: colors.surfaceSunken,
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
 });
