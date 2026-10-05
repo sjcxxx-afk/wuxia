@@ -48,7 +48,7 @@ export default function Categories() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>分类管理</Text>
         <TouchableOpacity onPress={openAdd}>
-          <Icon name="ingest" size={32} color={colors.accent} />
+          <Icon name="plus" size={32} color={colors.accent} />
         </TouchableOpacity>
       </View>
 

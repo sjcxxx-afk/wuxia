@@ -187,7 +187,7 @@ export default function CategorySheet({ visible, category, onClose, onSaved }: P
               <View style={styles.customFieldsHeader}>
                 <Text style={styles.sectionLabel}>自定义字段</Text>
                 <TouchableOpacity onPress={() => setAddingField(true)}>
-                  <Icon name="ingest" size={20} color={colors.accent} />
+                  <Icon name="plus" size={20} color={colors.accent} />
                 </TouchableOpacity>
               </View>
 

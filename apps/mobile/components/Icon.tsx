@@ -14,7 +14,11 @@ export type IconProps = {
   size?: number;
   /** 描边色。默认取 theme 语义色，不传色值请勿硬编码 */
   color?: string;
-  /** 选中态：额外叠一层「着墨更实」的笔画 */
+  /**
+   * 小尺寸补偿：描边随尺寸变小会显得虚，按经验略微加粗。
+   * 选中态再乘 1.15 —— 「着墨更实」不只靠叠加笔画，
+   * 也要靠笔画本身变重一点，否则在 25px 上两种状态几乎看不出差别。
+   */
   active?: boolean;
   /** 手动指定描边粗细（24 视图框下的 path 单位） */
   strokeWidth?: number;
@@ -29,12 +33,15 @@ export type IconProps = {
 const VIEW_BOX = 24;
 
 /** 小尺寸补偿：描边随尺寸变小会显得虚，按经验略微加粗 */
-function resolveStrokeWidth(size: number, override?: number): number {
-  if (typeof override === "number") return override;
-  if (size < 18) return 2.1;
-  if (size < 22) return 1.9;
-  if (size < 30) return 1.8;
-  return 1.7;
+function resolveStrokeWidth(size: number, override?: number, active?: boolean): number {
+  let sw: number;
+  if (typeof override === "number") sw = override;
+  else if (size < 18) sw = 2.1;
+  else if (size < 22) sw = 1.9;
+  else if (size < 30) sw = 1.8;
+  else sw = 1.7;
+  // 选中态加半分「着墨」感：只靠叠加笔画，25px 下两种状态几乎分不出来
+  return active ? sw * 1.15 : sw;
 }
 
 /**
@@ -63,7 +70,7 @@ function IconBase({
     return <View style={[{ width: size, height: size }, style]} />;
   }
 
-  const sw = resolveStrokeWidth(size, strokeWidth);
+  const sw = resolveStrokeWidth(size, strokeWidth, active);
   const strokeProps = {
     stroke: color,
     strokeWidth: sw,

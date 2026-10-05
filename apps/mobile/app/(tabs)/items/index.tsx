@@ -75,7 +75,7 @@ export default function ItemList() {
           <Ionicons name="cloud-download-outline" size={22} color={colors.accent} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/(tabs)/items/add")}>
-          <Icon name="ingest" size={32} color={colors.accent} />
+          <Icon name="plus" size={32} color={colors.accent} />
         </TouchableOpacity>
       </View>
     </View>
