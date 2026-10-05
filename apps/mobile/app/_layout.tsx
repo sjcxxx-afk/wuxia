@@ -5,7 +5,10 @@ import { AppState, AppStateStatus } from "react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import InkSplash, { INK_SPLASH_ENTER_MS } from "../components/InkSplash";
+import InkSplash, {
+  INK_SPLASH_ENTER_MS,
+  INK_SPLASH_HARD_HIDE_MS,
+} from "../components/InkSplash";
 import { colors } from "../lib/theme";
 import { flushData } from "../lib/storage/jsonStore";
 
@@ -13,9 +16,13 @@ import { flushData } from "../lib/storage/jsonStore";
  * 拦住原生启动页，交由 InkSplash 接管。
  * 必须在模块顶层调用（早于任何组件渲染），否则会先闪一下原生启动页。
  *
- * app.json 里已去掉 splash 的 image —— 原来那张图是**带圆角和渐变的满幅应用图标**，
- * 压在底色上就成了「方块套方块」，这是启动页难看的真正根因。
- * 现在原生启动页是纯宣纸色，与 InkSplash 首帧同色，hideAsync 的瞬间无痕。
+ * app.json 的 splash image 已换成 assets/splash-mark.png（透明底标记）——
+ * 原来那张是带圆角和渐变的满幅应用图标，压在底色上就成了「方块套方块」。
+ * 但**不能删掉 image**：expo-splash-screen 会无条件引用
+ * @drawable/splashscreen_logo，省略它会导致 AAPT2 资源链接失败。
+ *
+ * 无论启动页那边出什么问题，都必须保证原生页被隐藏 —— 它一旦留在屏幕上，
+ * 底下所有界面都看不见，而 release 包没有红屏浮层，用户只会觉得「应用打不开」。
  */
 SplashScreen.preventAutoHideAsync().catch(() => {
   // 已隐藏之类的情况会 reject，忽略即可 —— 不该因为它阻断启动
@@ -23,6 +30,16 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 // 原生启动页的退场做成瞬时，视觉上完全由 InkSplash 接管
 SplashScreen.setOptions({ duration: 0, fade: false });
+
+/**
+ * 硬性兜底：无论 InkSplash 的动画与回调是否正常，最多 2.5s 后一定把原生页收掉。
+ * 这个定时器挂在模块作用域，不受任何组件生命周期影响 ——
+ * 之前挂在 useEffect 里，组件一旦被提前卸载就会连兜底一起丢掉。
+ */
+const HARD_HIDE_MS = INK_SPLASH_HARD_HIDE_MS;
+setTimeout(() => {
+  SplashScreen.hideAsync().catch(() => {});
+}, HARD_HIDE_MS);
 
 type Phase = "native" | "ink" | "gone";
 
@@ -63,8 +80,8 @@ export default function RootLayout() {
   const handleExited = useCallback(() => setPhase("gone"), []);
 
   /**
-   * 兜底：若 onEntered 一直没来（例如动画被系统打断），不能永远卡在启动页。
-   * 留一倍余量。
+   * 兜底：若 onEntered 一直没来（例如入场动画被系统打断），不能永远卡在启动页。
+   * 留一倍余量。模块作用域那个 HARD_HIDE_MS 是最后一道防线，这个只是提前收。
    */
   useEffect(() => {
     if (phase !== "native") return;

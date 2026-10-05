@@ -171,13 +171,24 @@ function WoodTabBarBase({ state, descriptors, navigation, bottomInset }: WoodTab
       : withSpring(index * tabWidth, motion.spring);
   }, [index, tabWidth, reduced, markX]);
 
-  // 切换时的轻触感：木质「叩」一下。失败（设备不支持）静默忽略。
+  // 切换时的轻触感：木质「叩」一下。
+  // 必须用 try/catch 而不是只挂 .catch：原生模块缺失时 Haptics.selectionAsync
+  // 本身会是 undefined，调用它抛的是**同步** TypeError，Promise 的 .catch 接不到。
+  // 这种异常发生在 useEffect 里，会直接把整棵渲染树打崩 —— release 包无红屏，
+  // 表现就是「停在启动页」。
   useEffect(() => {
     if (firstRun.current) {
       firstRun.current = false;
       return;
     }
-    Haptics.selectionAsync().catch(() => {});
+    try {
+      const maybePromise = Haptics.selectionAsync();
+      if (maybePromise && typeof maybePromise.catch === "function") {
+        maybePromise.catch(() => {});
+      }
+    } catch {
+      // 设备不支持触感反馈，静默忽略
+    }
   }, [index]);
 
   const markStyle = useAnimatedStyle(() => ({

@@ -39,7 +39,6 @@
       "label": "物匣",
       "versionCode": 4,
       "predictiveBackGestureEnabled": false,
-      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F2EDE4",

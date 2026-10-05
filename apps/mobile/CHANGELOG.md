@@ -22,9 +22,13 @@
 - 资源生成管线：`scripts/generate-textures.js`（零依赖手写 PNG 编码器 + 格点周期化值噪声 fBm，产出可无缝平铺纹理）与 `scripts/icons.js`（有向距离场 SDF 解析抗锯齿绘制品牌标记）
 - 新增三道质量守卫并接入 `npm run check`：`check:theme`（实测所有前景/背景组合的 WCAG 对比度）、`check:textures`（校验磁盘产物与生成器漂移）、`check:babel`（断言 worklet 已被正确改写）
 - 新增 `check:native` 原生资源引用守卫，并接入 CNB（prebuild 后 2.5 步）与 GitHub Actions 两条流水线：校验 splash 配置自洽，以及 `values` 里所有 `@drawable` / `@color` / `@style` 引用均可解析
-- 新增原生依赖：`react-native-svg` 15.15.4、`expo-haptics` ~56.0.3、`expo-image` ~56.0.13
+- 新增 `check:imports` 本地导入/导出一致性守卫：核对 247 个项目内部具名导入是否都有对应导出。TypeScript 挡得住「导入不存在的东西」，但挡不住默认参数在**渲染期**求值、模块顶层表达式在 **import 时**求值这两类运行期崩溃 —— 表现同样是 release 包停在启动页
+- 新增 `lib/splashTiming.ts`：把启动页的时序常量与退场闸门抽成不依赖 react-native 的纯逻辑，使其可被单元测试钉住
+- 新增原生依赖：`react-native-svg` 15.15.4、`expo-haptics` ~56.0.3、`expo-image` ~56.0.13、`expo-system-ui` ~56.0.5
 
 ### Fixed
+- **修复 release 包安装后永久停在启动页（表现为「应用打不开」）**：启动页的退场闸门条件写反了（`if (active) return;`）。`active` 的语义是「入场播完」，挂载时恰为 `false`，于是 `InkSplash` 一挂载就开始退场、300ms 后被卸载，入场动画才播了三分之一；更致命的是 `app/_layout.tsx` 里负责 `hideAsync` 的兜底定时器因 `phase !== "native"` 被一并清掉，原生启动页永不消失，底下所有界面都看不见。改为 `shouldRunExit(active)`（抽到 `lib/splashTiming.ts` 纯逻辑 + 8 个回归测试），并在 `_layout` 模块作用域加一道 2.5s 的硬性 `hideAsync` 兜底 —— 不受组件生命周期影响
+- **修复 `expo-haptics` 可能同步抛错**：原先只挂 `.catch()`，而原生模块缺失时 `selectionAsync` 本身是 `undefined`，调用抛的是**同步** `TypeError`，Promise 的 `.catch` 接不到，会直接打崩渲染树。改为 `try/catch` 并对返回值做类型判断
 - **修复 release 构建挂在 `:app:processReleaseResources`（AAPT2 `resource drawable/splashscreen_logo not found`）**：v2.0.0 首次出包时把 `app.json` 的 splash `image` 删掉以消除「方块套方块」，但 `expo-splash-screen` 的 config plugin 自身不对称——`withAndroidSplashStyles.js` **无条件**把 `@drawable/splashscreen_logo` 写进 `styles.xml`，而 `withAndroidSplashImages.js` 只在配了 `image` 时才生成该 drawable（源码注释："If path isn't provided then no new image is placed"）。**省略 `image` 必然产出一次资源链接失败**。改为提供一张透明底的启动页标记 `assets/splash-mark.png`（脚本生成，RGBA），既补回资源又不会重新引入方块
 - 修复启动页「方块套方块」：`assets/` 下四张图字节完全相同，`splash-icon.png` 实为带圆角与渐变的满幅应用图标，被压在 `#4F46E5` 底色上形成双重方形违和感
 - 修复底部导航栏的交互缺失：原先仅颜色变化，无按下态、无图标动画、四个 Tab 之间为硬切。改为矢量木纹木架 + 滑动朱砂标记 + 按压 spring 回弹 + 图标着墨动画 + 字重变化 + `shift` 转场 + `freezeOnBlur` + 轻触感
@@ -42,7 +46,8 @@
 - `AGENTS.md` 补充「视觉体系」一节，记录材质分工、两条纹理铁律与反例
 
 ### Removed
-- 移除 `assets/splash-icon.png`：满幅图标不该充当启动图，改由 `InkSplash.tsx` 在应用内接管过渡
+- 移除 `android.edgeToEdgeEnabled`：Android 16 起 edge-to-edge 为强制行为，该配置项在 SDK 56 的插件里已失效（prebuild 会告警），留着只会被误当成有效开关
+- 移除 `assets/splash-icon.png`：满幅图标不该充当启动图，改由透明底的 `assets/splash-mark.png` 承载原生页、`InkSplash.tsx` 承载应用内过渡
 
 
 ### Added
