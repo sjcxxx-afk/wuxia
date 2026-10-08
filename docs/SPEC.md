@@ -1,6 +1,6 @@
-# 物匣 — 技术规范文档 (SPEC v4.0)
+# 物匣 — 技术规范文档 (SPEC v4.1)
 
-> 版本：v4.0.0 | 更新：2026-10-04 | 基于 PRD v3.0 编写
+> 版本：v4.1.0 | 更新：2026-10-08 | 基于 PRD v3.0 编写
 >
 > 本文档自身的版本号跟随[功能版本](#72-版本号规则)（与 CHANGELOG 同步），不跟随 `app.json` 的 App 版本。
 >
@@ -35,11 +35,12 @@
 ├──────────────────────────────────────────┤
 │              Application Layer            │
 │   Repository Pattern (数据仓储层)          │
-│   Service Layer (AI / OCR / Sync)         │
+│   Service Layer (AI / OCR / Backup)       │
 ├──────────────────────────────────────────┤
 │              Infrastructure Layer         │
 │   expo-file-system (JSON + Image I/O)     │
-│   expo-image-picker / document-picker     │
+│   expo-image-picker / image-manipulator   │
+│   expo-document-picker                    │
 └──────────────────────────────────────────┘
 ```
 
@@ -51,8 +52,10 @@
 | **工具链** | Expo SDK | 56 | 免原生配置的开发体验；插件生态丰富；prebuild 出原生工程后可放到任意 CI 构建 |
 | **路由** | expo-router | 56.2 | 文件系统路由（类 Next.js），约定优于配置；支持 Stack/Tabs 嵌套、动态路由、深层链接 |
 | **语言** | TypeScript | 6.0 | 静态类型检查，减少运行时错误；完善的 IDE 智能提示 |
-| **存储** | expo-file-system | 56.0 | 单 JSON 文件方案：零数据库依赖、数据透明可读、云盘友好；适合个人工具的小数据量场景 |
+| **存储** | expo-file-system | 56.0 | 单 JSON 文件方案：零数据库依赖、数据透明可读、导出即为人类可读文本；适合个人工具的小数据量场景 |
 | **图片** | expo-image-picker | 56.0 | 系统级相册选择，支持多选 + 质量压缩；与 expo-file-system 协同存储 |
+| **图片压缩** | expo-image-manipulator | 56.0 | 入匣时把相册原图缩到最长边 1600 再落盘，避免单图数 MB 堆积成备份包体积黑洞 |
+| **备份包读写** | expo-file-system（新 API） | 56.0 | `Directory.pickDirectoryAsync()` 跨平台选择文件夹，`File.copy()` 直接搬运二进制，无需 base64 中转 |
 | **文件导入** | expo-document-picker + xlsx | 56.0 / 0.18.5 | 支持 CSV/Excel 解析，客户端的列名自动映射；xlsx 是 JS 生态最成熟的表格解析库 |
 | **动画** | react-native-reanimated | 4.3 | 60fps 原生线程动画，用于图表和 UI 过渡 |
 | **图标** | @expo/vector-icons | 15.0 | 内置 Ionicons，统一图标风格 |
@@ -61,7 +64,7 @@
 
 | 技术 | 为何不选 |
 |------|----------|
-| **SQLite (expo-sqlite)** | v1 曾使用，v2 移除。JSON 文件方案更简单、可读、云盘同步友好；个人数据量 (< 10000 条) 无需关系型查询 |
+| **SQLite (expo-sqlite)** | v1 曾使用，v2 移除。JSON 文件方案更简单、可读、便于整体导出；个人数据量 (< 10000 条) 无需关系型查询 |
 | **AsyncStorage** | 仅支持键值对，无法存储结构化 JSON 文件；不适合导出/导入场景 |
 | **MMKV** | 高性能 KV 存储，但同样不支持文件级导出；对当前场景过度设计 |
 | **Redux / Zustand** | 当前数据流简单（load → cache → update → save），全局状态管理加重复杂度；React 本地 state + useFocusEffect 已足够 |
@@ -72,11 +75,14 @@
 
 | ID | 决策 | 理由 |
 |----|------|------|
-| ADR-001 | 本地 JSON 文件存储 | 个人数据量小、透明可读、云盘同步友好 |
+| ADR-001 | 本地 JSON 文件存储 | 个人数据量小、透明可读、便于整体导出 |
 | ADR-002 | 内存缓存 + 防抖写盘 (300ms) | 避免频繁 I/O，性能与数据安全的平衡 |
-| ADR-003 | API Key 使用系统安全存储 | 与业务数据和同步文件隔离，避免明文落盘 |
+| ADR-003 | API Key 使用系统安全存储 | 与业务数据和备份包隔离，避免明文落盘 |
 | ADR-004 | 图片存文件系统 + JSON 存路径 | 避免 JSON 膨胀 (base64 会使文件增大 33%)，支持独立管理 |
 | ADR-005 | 无后端、无认证 | 核心理念"打开即用"，降低隐私顾虑和使用门槛 |
+| ADR-006 | 图片路径只存相对名 | 绝对路径随设备与安装实例变化，跨设备导入必然失效；相对名 + `resolveImageUri()` 让备份包开箱可用 |
+| ADR-007 | 备份用目录式压缩包而非单文件 | 单文件方案要么 base64 内嵌（体积 +33%、大图易 OOM），要么手写 zip；目录式只需逐文件复制，且电脑上可直接查看 |
+| ADR-008 | 导入语义为全量覆盖 | 备份/换机场景下"恢复成当时的样子"才符合直觉；记录级时间戳合并在图片场景会产生孤儿文件与死引用 |
 
 ---
 
@@ -147,18 +153,21 @@
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| version | number | ✅ | 1 | 数据格式版本号，用于未来迁移 |
-| lastModified | ISO 8601 | ✅ | now() | 文件最后修改时间，用于同步对比 |
+| version | number | ✅ | 3 | 数据格式版本号，读取时按此迁移 |
+| lastModified | ISO 8601 | ✅ | now() | 文件最后修改时间 / 备份包导出时间 |
 | profile | Profile | ✅ | — | 匣主资料 |
 | categories | Category[] | ✅ | [] | 分类列表 |
 | items | Item[] | ✅ | [] | 匣中列表（匣物） |
+
+> 版本历史：v1（初版）→ v2（新增删除墓碑）→ **v3（移除墓碑，图片路径改为相对名）**。
+> v2 的文件仍可读取，`normalizeWarehouseData` 会把绝对路径改写为 `images/<文件名>`。
 
 #### 2.2.2 Profile (匣主资料)
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | nickname | string | ❌ | "" | 用户昵称 |
-| avatarUrl | string \| null | ❌ | null | 头像文件路径或 URI |
+| avatarUrl | string \| null | ❌ | null | 头像 data URI（base64 内嵌，因此随 JSON 一起进入备份包） |
 
 #### 2.2.3 Category (分类)
 
@@ -199,7 +208,7 @@
 | quantity | number | ❌ | 1 | 数量 |
 | status | string | ❌ | "使用中" | 匣物状态枚举值 |
 | notes | string \| null | ❌ | null | 备注 |
-| images | string[] | ❌ | [] | 图片文件路径数组 |
+| images | string[] | ❌ | [] | 图片相对名数组，形如 `images/<uuid>.jpg`（见 2.4） |
 | customValues | Record<string,string> | ❌ | {} | 自定义字段值 (key=CustomField.id) |
 | createdAt | ISO 8601 | ✅ | now() | 创建时间 |
 | updatedAt | ISO 8601 | ✅ | now() | 最后更新时间 |
@@ -240,8 +249,14 @@
 | 文件 | 数据结构 | 用途 |
 |------|----------|------|
 | `warehouse-ocr-settings.json` | `{ apiKey, apiBase, model }` | AI 配置 |
-| `warehouse-sync-settings.json` | `{ syncFolderPath, autoSyncEnabled, syncMode }` | 同步配置 |
 | `images/*.{jpg,png,webp}` | 二进制文件 | 匣物图片 |
+
+导出产生的备份包（位置由匣主选择，不在应用私有目录内）：
+
+| 路径 | 内容 |
+|------|------|
+| `物匣备份-<YYYYMMDD-HHmmss>/warehouse-data.json` | 完整数据快照（version 3） |
+| `物匣备份-<YYYYMMDD-HHmmss>/images/*` | 对应匣物的全部图片文件 |
 
 ### 2.4 数据完整性约束
 
@@ -249,9 +264,10 @@
 |------|------|
 | Item.categoryId → Category.id | 软外键：删除分类时清空关联匣物的 categoryId，不级联删除 |
 | customValues key → CustomField.id | 软外键：切换分类时清空 customValues |
-| Item.images[] | 路径必须指向 documentDirectory/images/ 下的持久化文件 |
-| lastModified | 每次写盘自动更新，用于同步时间戳比较 |
-| version | 当前固定为 1，未来数据迁移时递增 |
+| Item.images[] | **只存相对名** `images/<文件名>`；渲染/落盘时由 `resolveImageUri()` 拼当前设备的 documentDirectory。绝对路径在换机与 iOS 重装后会失效，故一律不入库 |
+| 图片文件命名 | UUID + 归一扩展名（`.jpg` / `.png` / `.webp`），保证跨设备同名不冲突 |
+| lastModified | 每次写盘自动更新；备份包中即为导出时间 |
+| version | 当前为 3，结构变更时递增并在 `normalizeWarehouseData` 中提供迁移 |
 
 ---
 
@@ -435,54 +451,54 @@
 返回: void
 ```
 
-#### A.4 同步 (Sync)
+#### A.4 数据备份 (Backup)
 
 ```
-┌──────────┬─────────────────┬──────────────┐
-│  方法     │  路径            │  说明         │
-├──────────┼─────────────────┼──────────────┤
-│  EXPORT  │ /sync/export    │ 导出到指定路径  │
-│  IMPORT  │ /sync/import    │ 从指定路径导入  │
-│  CHECK   │ /sync/check     │ 检查远程更新    │
-│  SETTINGS│ /sync/settings  │ 同步设置 CRUD  │
-└──────────┴─────────────────┴──────────────┘
+┌──────────┬──────────────────┬──────────────────────┐
+│  方法     │  路径             │  说明                 │
+├──────────┼──────────────────┼──────────────────────┤
+│  EXPORT  │ /backup/export   │ 导出目录式备份包（含图片）│
+│  SELECT  │ /backup/select   │ 选择备份包并读取预览     │
+│  APPLY   │ /backup/apply    │ 覆盖导入（含图片）       │
+└──────────┴──────────────────┴──────────────────────┘
 ```
 
-**EXPORT /sync/export**
+**EXPORT /backup/export**
 ```typescript
-参数: targetPath: string       // 目标文件夹路径
-返回: void
-说明: 在 targetPath 下生成 warehouse-data.json
+参数: onProgress?: (p: { done: number; total: number }) => void
+返回: ExportSummary | null      // null = 匣主取消选择
+说明: 选目标文件夹 → 新建「物匣备份-<YYYYMMDD-HHmmss>/」→ 写 warehouse-data.json 与 images/
+副作用: 无（只读本地数据）
 ```
 
-**IMPORT /sync/import**
+**SELECT /backup/select**
 ```typescript
-参数: sourcePath: string       // 源文件路径
-返回: void
-说明: 读取 sourcePath 中的 JSON，按记录级时间戳合并到本地
-```
-
-**CHECK /sync/check**
-```
-返回: {
-  hasUpdate: boolean;
-  remoteTime: string | null;   // 云端文件 lastModified
-  localTime: string | null;    // 本地文件 lastModified
+参数: 无
+返回: BackupSelection | null    // null = 匣主取消选择
+说明: 选择备份包文件夹（也兼容选中其父文件夹，会向下找一层），解析 JSON 并统计图片缺口
+结构: {
+  dirName: string;
+  backedUpAt: string;           // 备份包的 lastModified
+  itemCount: number;
+  categoryCount: number;
+  imageCount: number;
+  missingImages: number;
+  apply: (onProgress?) => Promise<ImportSummary>;
 }
 ```
 
-**SETTINGS /sync/settings**
+**APPLY /backup/apply**
 ```typescript
-// GET
 返回: {
-  syncFolderPath: string;
-  autoSyncEnabled: boolean;
-  syncMode: "every_change" | "every_5min" | "every_30min";
+  itemCount: number;
+  categoryCount: number;
+  imageCount: number;
+  missingImages: number;        // 备份包中缺失、未能导入的图片数
+  prunedImages: number;         // 导入后清理掉的无引用本地图片数
 }
-
-// UPDATE
-请求体: Partial<SyncSettings>
-返回: void
+说明: 图片以新 UUID 名落地本机 images/ 并改写 JSON 引用，随后整体替换本地数据
+      （全量覆盖，不可撤销）；仅在没有图片缺失时才清理无引用图片，
+      避免备份本身不完整时把本机唯一副本也删掉
 ```
 
 #### A.5 图片管理 (Images)
@@ -715,10 +731,10 @@ apps/mobile/
 │   ├── types.ts                      # 全局类型定义
 │   │
 │   ├── storage/                      # 持久化层
-│   │   ├── jsonStore.ts              # JSON 文件读写 + 内存缓存 + 防抖
-│   │   ├── syncService.ts            # 导出/导入/合并/自动同步
-│   │   ├── syncSettings.ts           # 同步设置管理
-│   │   ├── imageStore.ts             # 图片文件管理
+│   │   ├── jsonStore.ts              # JSON 文件读写 + 内存缓存 + 防抖 + 版本迁移
+│   │   ├── backupService.ts          # 目录式备份包导出 / 覆盖导入
+│   │   ├── imageStore.ts             # 图片压缩、落盘、删除、孤儿清理
+│   │   ├── imagePaths.ts             # 图片路径归一（纯函数，可单测）
 │   │   └── reminderSettings.ts       # 闲置提醒设置
 │   │
 │   ├── repositories/                 # 数据仓储层 (Repository Pattern)
@@ -750,7 +766,7 @@ apps/mobile/
 │   ├── SearchBar.tsx                 # 寻觅输入框
 │   ├── DatePickerModal.tsx           # 日期选择器
 │   ├── AiSettingsCard.tsx            # AI 配置卡片
-│   ├── SyncSettingsCard.tsx          # 同步设置卡片
+│   ├── DataSettingsCard.tsx          # 数据备份卡片（导出 / 导入）
 │   ├── ReminderSettingsCard.tsx      # 闲置提醒设置卡片
 │   ├── IdleReminderBanner.tsx        # 闲置提醒横幅
 │   ├── EmptyState.tsx                # 空状态占位
@@ -803,9 +819,9 @@ apps/mobile/
 ├─────────────────────────────────────────────────────┤
 │  lib/storage/      Infrastructure  基础设施层        │
 │  ─────────────────────────────────────────────────  │
-│  • jsonStore：文件 I/O、缓存、防抖                    │
-│  • syncService：同步逻辑、合并策略                    │
-│  • imageStore：图片文件管理                           │
+│  • jsonStore：文件 I/O、缓存、防抖、版本迁移          │
+│  • backupService：备份包导出、覆盖导入                │
+│  • imageStore：图片压缩与文件管理                     │
 ├─────────────────────────────────────────────────────┤
 │  lib/ocr/ lib/ai/  External Services  外部服务       │
 │  ─────────────────────────────────────────────────  │
@@ -888,18 +904,22 @@ interface OcrSettings {
 | 项目 | 策略 |
 |------|------|
 | 数据存储 | 本地文件系统，不传输到任何第三方服务器 |
-| API Key | 仅存储于系统安全存储；配置文件和同步文件不包含密钥 |
+| API Key | 仅存储于系统安全存储；配置文件与备份包均不包含密钥 |
 | 数据传输 | AI 调用使用 HTTPS；物匣数据仅在匣主主动提问时作为上下文发送给 LLM |
-| 同步文件 | 依赖云盘软件自身的加密传输；App 不做额外加密 |
+| 备份包 | 明文 JSON + 原始图片，落在匣主自选的位置；App 不做额外加密，由匣主自行决定存放与分享范围 |
 
 ### 6.2 Android 权限
 
 ```xml
-READ_EXTERNAL_STORAGE    — 读取云盘同步文件夹
-WRITE_EXTERNAL_STORAGE   — 写入云盘同步文件夹
+READ_EXTERNAL_STORAGE    — 历史遗留（原云盘同步文件夹读写，当前代码已无使用方）
+WRITE_EXTERNAL_STORAGE   — 同上
 INTERNET                 — AI API 调用
 RECORD_AUDIO             — (预留，当前未使用)
 ```
+
+> 导出/导入走 SAF（`Directory.pickDirectoryAsync`）**按次授权**，只拿到匣主选中的那一个目录，
+> 不再依赖 `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`。
+> 上面两条权限目前仍留在 `app.json` 里，属于历史声明；移除前需真机回归相册选图与截图识别链路。
 
 ### 6.3 隐私说明
 
@@ -951,7 +971,7 @@ RECORD_AUDIO             — (预留，当前未使用)
 ```
 
 > ⚠️ 首次从调试签名切换到正式签名后，已装设备必须**先卸载再装新版**（Android 不允许签名变更的覆盖安装）。
-> 卸载会清空应用私有目录，请先在「匣主 → 同步」导出数据。
+> 卸载会清空应用私有目录，请先在「匣主 → 数据备份」导出数据（含图片），装好后用同一份备份包导入。
 
 ### 7.4 更新流程（安装包）
 
@@ -996,37 +1016,37 @@ Page (app/)  ──调用──▶  Repository (lib/repositories/)
                     │
                     ▼
            expo-file-system
-           (warehouse-data.json)
+           (warehouse-data.json + images/)
                     │
-                    ▼ (若开启自动同步)
-           syncService.ts
-           triggerAutoExport()
+                    ▼ (匣主主动触发)
+           backupService.ts
+           exportBackup()
                     │
                     ▼
-           云盘同步文件夹
+           物匣备份-<时间戳>/
+             ├ warehouse-data.json
+             └ images/
 ```
 
-## 附录 B：同步合并算法
+> 写盘与备份完全解耦：日常增删改只落本地文件（防抖 300ms），
+> 备份只在匣主点击「导出数据」时发生，不再有后台自动上传。
+
+## 附录 B：备份包结构
 
 ```
-输入: localData, remoteData (均为 WarehouseData)
-输出: mergedData
+物匣备份-20261008-143045/
+├── warehouse-data.json          # 完整数据快照，version 3，images 为相对名
+└── images/
+    ├── <uuid>.jpg
+    └── <uuid>.png
 
-算法:
-1. 建立 itemMap: Map<id, Item>
-   - 遍历 localData.items, 放入 itemMap
-   - 遍历 remoteData.items:
-     - 若 id 不在 itemMap 中 → 添加
-     - 若 id 存在且 remote.item.updatedAt > local.item.updatedAt → 覆盖
-
-2. 建立 catMap: Map<id, Category>  (同上逻辑)
-
-3. profile: remote 优先（若非空），否则用 local
-
-4. 返回 { version: 1, lastModified: now(), profile, categories, items }
+导出: 遍历 items[].images 去重 → 逐张 File.copy() 到 images/ → 缺失文件计入 missingImages
+导入: 读 JSON → 校验结构 → 逐张复制到本机 images/（重新生成 UUID 名）
+      → 按「包内文件名 → 本机相对名」映射改写引用 → replaceData() 整体覆盖
+      → 无图片缺失时 pruneOrphanImages() 清理无引用文件
 ```
 
 ---
 
 > 本文档基于实际代码 `apps/mobile/` 编写，所有接口签名、类型定义、文件路径均与源码一致。
-> 最后验证时间：2026-06-15
+> 最后验证时间：2026-10-08

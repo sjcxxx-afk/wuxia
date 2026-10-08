@@ -1,5 +1,4 @@
 ﻿import { loadData, updateData, nowISO, generateId } from "../storage/jsonStore";
-import { triggerAutoExport } from "../storage/syncService";
 import { deleteImages } from "../storage/imageStore";
 import { getReminderSettings } from "../storage/reminderSettings";
 import { generateAndSaveItemReview } from "../ai/itemReviewService";
@@ -122,7 +121,6 @@ export const itemRepository = {
         },
       ],
     }));
-    triggerAutoExport();
     void generateAndSaveItemReview(id);
     return id;
   },
@@ -158,7 +156,6 @@ export const itemRepository = {
         return updated;
       }),
     }));
-    triggerAutoExport();
     void generateAndSaveItemReview(id);
   },
 
@@ -179,7 +176,6 @@ export const itemRepository = {
           : item
       ),
     }));
-    triggerAutoExport();
   },
 
   async delete(id: string): Promise<void> {
@@ -188,16 +184,10 @@ export const itemRepository = {
     if (item?.images?.length) {
       await deleteImages(item.images);
     }
-    const deletedAt = nowISO();
     updateData((data) => ({
       ...data,
       items: data.items.filter((item) => item.id !== id),
-      deletedItems: [
-        ...data.deletedItems.filter((tombstone) => tombstone.id !== id),
-        { id, deletedAt },
-      ],
     }));
-    triggerAutoExport();
   },
 
   async search(query: string, filters: SearchFilters): Promise<ItemSummary[]> {

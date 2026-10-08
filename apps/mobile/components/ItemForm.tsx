@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import DatePickerModal from "./DatePickerModal";
 import { categoryRepository } from "../lib/repositories/categoryRepository";
+import { resolveImageUri } from "../lib/storage/imageStore";
 import type { CustomField } from "../lib/types";
 import { colors } from "../lib/theme";
 
@@ -187,7 +188,7 @@ export default function ItemForm({
           <View style={styles.imageRow}>
             {images.map((uri, index) => (
               <View key={index} style={styles.imageBox}>
-                <Image source={{ uri }} style={styles.thumbnail} resizeMode="cover" />
+                <Image source={{ uri: resolveImageUri(uri) }} style={styles.thumbnail} resizeMode="cover" />
                 <TouchableOpacity
                   style={styles.removeImageBtn}
                   onPress={() => removeImage(index)}

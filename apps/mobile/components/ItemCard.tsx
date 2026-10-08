@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { ItemSummary } from "../lib/types";
+import { resolveImageUri } from "../lib/storage/imageStore";
 import StatusBadge from "./StatusBadge";
 import { colors } from "../lib/theme";
 
@@ -16,7 +17,7 @@ export default function ItemCard({ item }: { item: ItemSummary }) {
     >
       <View style={styles.row}>
         {hasImage && (
-          <Image source={{ uri: item.images[0] }} style={styles.thumb} resizeMode="cover" />
+          <Image source={{ uri: resolveImageUri(item.images[0]) }} style={styles.thumb} resizeMode="cover" />
         )}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>

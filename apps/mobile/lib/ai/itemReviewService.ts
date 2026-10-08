@@ -3,7 +3,6 @@
 import { getApiKey, getOcrSettingsAsync, hasAiConsent, type OcrSettings } from "../ocr/ocrService";
 import { buildItemReviewSystemPrompt, stripMarkdown } from "./personality";
 import { generateId, loadData, nowISO, updateData } from "../storage/jsonStore";
-import { triggerAutoExport } from "../storage/syncService";
 import type { AiReviewFailureCode } from "../types";
 
 const REVIEW_TIMEOUT_MS = 12_000;
@@ -159,6 +158,5 @@ export async function generateAndSaveItemReview(itemId: string): Promise<ItemRev
         : { ...item, aiReviewStatus: "failed", aiReviewError: outcome.code };
     }),
   }));
-  triggerAutoExport();
   return outcome;
 }

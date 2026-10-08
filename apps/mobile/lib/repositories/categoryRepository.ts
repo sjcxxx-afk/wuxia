@@ -1,5 +1,4 @@
 ﻿import { loadData, updateData, nowISO, generateId } from "../storage/jsonStore";
-import { triggerAutoExport } from "../storage/syncService";
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from "../types";
 
 function generateFieldId(): string {
@@ -47,7 +46,6 @@ export const categoryRepository = {
         },
       ],
     }));
-    triggerAutoExport();
     return id;
   },
 
@@ -74,7 +72,6 @@ export const categoryRepository = {
         return updated;
       }),
     }));
-    triggerAutoExport();
   },
 
   async delete(id: string): Promise<void> {
@@ -87,11 +84,6 @@ export const categoryRepository = {
           ? { ...item, categoryId: null, customValues: {}, updatedAt: deletedAt }
           : item
       ),
-      deletedCategories: [
-        ...data.deletedCategories.filter((tombstone) => tombstone.id !== id),
-        { id, deletedAt },
-      ],
     }));
-    triggerAutoExport();
   },
 };

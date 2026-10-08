@@ -15,6 +15,7 @@ import { itemRepository } from "../../../lib/repositories/itemRepository";
 import { categoryRepository } from "../../../lib/repositories/categoryRepository";
 import { getOcrSettingsAsync } from "../../../lib/ocr/ocrService";
 import { generateAndSaveItemReview, getItemReviewFailureMessage } from "../../../lib/ai/itemReviewService";
+import { resolveImageUri } from "../../../lib/storage/imageStore";
 import { Item, CustomField } from "../../../lib/types";
 import StatusBadge from "../../../components/StatusBadge";
 import confirmDialog from "../../../components/ConfirmDialog";
@@ -143,7 +144,7 @@ export default function ItemDetail() {
             {item.images.map((uri, idx) => (
               <TouchableOpacity key={idx} onPress={() => setFullImage(uri)}>
                 <Image
-                  source={{ uri }}
+                  source={{ uri: resolveImageUri(uri) }}
                   style={styles.galleryImage}
                   resizeMode="cover"
                 />
@@ -248,7 +249,7 @@ export default function ItemDetail() {
         >
           {fullImage && (
             <Image
-              source={{ uri: fullImage }}
+              source={{ uri: resolveImageUri(fullImage) }}
               style={styles.fullImage}
               resizeMode="contain"
             />

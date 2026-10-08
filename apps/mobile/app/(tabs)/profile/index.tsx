@@ -8,7 +8,7 @@ import { loadData } from "../../../lib/storage/jsonStore";
 import { ItemStats } from "../../../lib/types";
 import ProfileHeader from "../../../components/ProfileHeader";
 import StatsRow from "../../../components/StatsRow";
-import SyncSettingsCard from "../../../components/SyncSettingsCard";
+import DataSettingsCard from "../../../components/DataSettingsCard";
 import AiSettingsCard from "../../../components/AiSettingsCard";
 import ReminderSettingsCard from "../../../components/ReminderSettingsCard";
 import { colors } from "../../../lib/theme";
@@ -57,7 +57,8 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <ReminderSettingsCard />
-      <SyncSettingsCard />
+      <DataSettingsCard onImported={refresh} />
+
       <AiSettingsCard />
       <View style={{ height: 40 }} />
     </ScrollView>

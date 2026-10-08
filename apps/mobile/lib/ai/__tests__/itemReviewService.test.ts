@@ -1,6 +1,5 @@
 jest.mock("../../ocr/ocrService", () => ({}));
 jest.mock("../../storage/jsonStore", () => ({}));
-jest.mock("../../storage/syncService", () => ({}));
 
 import {
   buildItemReviewContext,

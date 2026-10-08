@@ -1,15 +1,19 @@
 import * as FileSystem from "expo-file-system/legacy";
 import type { AiReviewFailureCode, AiReviewStatus } from "../types";
+import { toRelativeImageName } from "./imagePaths";
 
 const DATA_FILENAME = "warehouse-data.json";
 const TEMP_FILENAME = "warehouse-data.tmp";
-const BACKUP_PREFIX = "warehouse-data.backup.";
-const BACKUP_COUNT = 3;
+const CORRUPT_PREFIX = "warehouse-data.corrupt-";
 
-export interface DeletedRecord {
-  id: string;
-  deletedAt: string;
-}
+/**
+ * 已废弃文件（同步设置、旧版本地备份轮转），加载时 best-effort 清理一次。
+ * 这些文件在仓库里已经没有读写方，留着只会让人误以为数据仍被备份。
+ */
+const LEGACY_FILENAMES = ["warehouse-sync-settings.json", "warehouse-data.backup.1.json"];
+const LEGACY_FILENAME_PREFIXES = ["warehouse-data.backup."];
+
+export const DATA_VERSION = 3;
 
 export interface WarehouseData {
   version: number;
@@ -17,9 +21,6 @@ export interface WarehouseData {
   profile: ProfileData;
   categories: CategoryData[];
   items: ItemData[];
-  /** v2: deletion tombstones make deletes propagate across devices. */
-  deletedItems: DeletedRecord[];
-  deletedCategories: DeletedRecord[];
 }
 
 export interface ProfileData {
@@ -64,44 +65,37 @@ export interface ItemData {
   updatedAt: string;
 }
 
-export interface BackupInfo {
-  slot: number;
-  path: string;
-  modifiedAt: number;
-}
-
 export interface DataRecoveryState {
   hasCorruptData: boolean;
   message: string | null;
 }
 
 const EMPTY_DATA: WarehouseData = {
-  version: 2,
+  version: DATA_VERSION,
   lastModified: new Date().toISOString(),
   profile: { nickname: "", avatarUrl: null },
   categories: [],
   items: [],
-  deletedItems: [],
-  deletedCategories: [],
 };
 
 let cache: WarehouseData | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let writeChain: Promise<void> = Promise.resolve();
 let recoveryState: DataRecoveryState = { hasCorruptData: false, message: null };
+let legacyCleaned = false;
 
 function dataPath(): string {
   return FileSystem.documentDirectory + DATA_FILENAME;
-}
-
-function backupPath(slot: number): string {
-  return FileSystem.documentDirectory + BACKUP_PREFIX + slot + ".json";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * 归一化任意来源的数据（本地文件、备份包）：
+ * 补齐缺失字段，把 v2 及更早的图片绝对路径改写为 `images/<文件名>`。
+ */
 export function normalizeWarehouseData(value: unknown): WarehouseData {
   if (!isRecord(value) || !Array.isArray(value.items) || !Array.isArray(value.categories)) {
     throw new Error("数据文件格式无效");
@@ -110,7 +104,7 @@ export function normalizeWarehouseData(value: unknown): WarehouseData {
   const categories = raw.categories ?? [];
   const items = raw.items ?? [];
   return {
-    version: 2,
+    version: DATA_VERSION,
     lastModified: typeof raw.lastModified === "string" ? raw.lastModified : nowISO(),
     profile: {
       nickname: raw.profile?.nickname ?? "",
@@ -122,7 +116,7 @@ export function normalizeWarehouseData(value: unknown): WarehouseData {
     })),
     items: items.map((item) => ({
       ...item,
-      images: item.images ?? [],
+      images: normalizeImageList(item.images),
       customValues: item.customValues ?? {},
       aiComment: item.aiComment ?? null,
       aiCommentAt: item.aiCommentAt ?? null,
@@ -131,11 +125,20 @@ export function normalizeWarehouseData(value: unknown): WarehouseData {
       aiReviewStartedAt: typeof item.aiReviewStartedAt === "string" ? item.aiReviewStartedAt : null,
       aiReviewError: isAiReviewFailureCode(item.aiReviewError) ? item.aiReviewError : null,
     })),
-    deletedItems: Array.isArray(raw.deletedItems) ? raw.deletedItems.filter(isDeletedRecord) : [],
-    deletedCategories: Array.isArray(raw.deletedCategories)
-      ? raw.deletedCategories.filter(isDeletedRecord)
-      : [],
   };
+}
+
+function normalizeImageList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const entry of value) {
+    const name = toRelativeImageName(String(entry ?? ""));
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    names.push(name);
+  }
+  return names;
 }
 
 function isAiReviewStatus(value: unknown): value is AiReviewStatus {
@@ -148,36 +151,46 @@ function isAiReviewFailureCode(value: unknown): value is AiReviewFailureCode {
     value === "http_error" || value === "empty_response" || value === "invalid_response";
 }
 
-function isDeletedRecord(value: unknown): value is DeletedRecord {
-  return isRecord(value) && typeof value.id === "string" && typeof value.deletedAt === "string";
-}
-
 async function readFile(path: string): Promise<string | null> {
   const info = await FileSystem.getInfoAsync(path);
   return info.exists ? FileSystem.readAsStringAsync(path) : null;
 }
 
-async function rotateBackups(): Promise<void> {
-  for (let slot = BACKUP_COUNT; slot >= 2; slot -= 1) {
-    const previous = backupPath(slot - 1);
-    const target = backupPath(slot);
-    const info = await FileSystem.getInfoAsync(previous);
-    if (info.exists) {
-      await FileSystem.copyAsync({ from: previous, to: target });
-    }
-  }
-  const current = await FileSystem.getInfoAsync(dataPath());
-  if (current.exists) {
-    await FileSystem.copyAsync({ from: dataPath(), to: backupPath(1) });
-  }
-}
-
 async function writeDataFile(content: string): Promise<void> {
   const tempPath = FileSystem.documentDirectory + TEMP_FILENAME;
   await FileSystem.writeAsStringAsync(tempPath, content);
-  await rotateBackups();
   await FileSystem.deleteAsync(dataPath(), { idempotent: true });
   await FileSystem.moveAsync({ from: tempPath, to: dataPath() });
+}
+
+/** 损坏的数据文件改名保留，避免后续写盘把它彻底覆盖掉。 */
+async function preserveCorruptFile(): Promise<string | null> {
+  const stamp = nowISO().replace(/[:.]/g, "-");
+  const target = FileSystem.documentDirectory + CORRUPT_PREFIX + stamp + ".json";
+  try {
+    const info = await FileSystem.getInfoAsync(dataPath());
+    if (!info.exists) return null;
+    await FileSystem.moveAsync({ from: dataPath(), to: target });
+    return CORRUPT_PREFIX + stamp + ".json";
+  } catch {
+    return null;
+  }
+}
+
+/** 清理已废弃的同步设置与备份文件（best-effort，只做一次）。 */
+async function cleanupLegacyFiles(): Promise<void> {
+  if (legacyCleaned) return;
+  legacyCleaned = true;
+  try {
+    const names = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory!);
+    for (const name of names) {
+      const isLegacy =
+        LEGACY_FILENAMES.includes(name) ||
+        LEGACY_FILENAME_PREFIXES.some((prefix) => name.startsWith(prefix));
+      if (!isLegacy) continue;
+      await FileSystem.deleteAsync(FileSystem.documentDirectory + name, { idempotent: true });
+    }
+  } catch { /* ignore */ }
 }
 
 export function nowISO(): string {
@@ -199,15 +212,20 @@ export async function loadData(): Promise<WarehouseData> {
     if (!content) {
       cache = { ...EMPTY_DATA, profile: { ...EMPTY_DATA.profile } };
       await flushData();
+      void cleanupLegacyFiles();
       return cache;
     }
     cache = normalizeWarehouseData(JSON.parse(content));
     recoveryState = { hasCorruptData: false, message: null };
+    void cleanupLegacyFiles();
     return cache;
   } catch (error) {
+    const preserved = await preserveCorruptFile();
     recoveryState = {
       hasCorruptData: true,
-      message: error instanceof Error ? error.message : "无法读取本地数据",
+      message: preserved
+        ? `${error instanceof Error ? error.message : "无法读取本地数据"}（原文件已保留为 ${preserved}）`
+        : error instanceof Error ? error.message : "无法读取本地数据",
     };
     cache = { ...EMPTY_DATA, profile: { ...EMPTY_DATA.profile } };
     return cache;
@@ -218,27 +236,13 @@ export function getDataRecoveryState(): DataRecoveryState {
   return recoveryState;
 }
 
-export async function listBackups(): Promise<BackupInfo[]> {
-  const backups: BackupInfo[] = [];
-  for (let slot = 1; slot <= BACKUP_COUNT; slot += 1) {
-    const path = backupPath(slot);
-    const info = await FileSystem.getInfoAsync(path);
-    if (info.exists) backups.push({ slot, path, modifiedAt: info.modificationTime ?? 0 });
-  }
-  return backups;
-}
-
-export async function restoreBackup(slot: number): Promise<void> {
-  if (slot < 1 || slot > BACKUP_COUNT) throw new Error("备份编号无效");
-  const content = await readFile(backupPath(slot));
-  if (!content) throw new Error("备份不存在");
-  cache = normalizeWarehouseData(JSON.parse(content));
-  recoveryState = { hasCorruptData: false, message: null };
-  await flushData();
-}
-
 export function getCachedData(): WarehouseData | null {
   return cache;
+}
+
+/** 当前数据的深拷贝，用于导出等只读场景。 */
+export async function snapshotData(): Promise<WarehouseData> {
+  return JSON.parse(JSON.stringify(await loadData())) as WarehouseData;
 }
 
 function scheduleSave(): void {
@@ -259,6 +263,13 @@ export function updateData(updater: (data: WarehouseData) => WarehouseData): War
   cache = updater(cache);
   scheduleSave();
   return cache;
+}
+
+/** 备份导入：整体替换本地数据并立即落盘。 */
+export async function replaceData(next: WarehouseData): Promise<void> {
+  cache = normalizeWarehouseData(JSON.parse(JSON.stringify(next)));
+  recoveryState = { hasCorruptData: false, message: null };
+  await flushData();
 }
 
 /** Test and recovery helper: the next load reads the on-disk file again. */
