@@ -9,6 +9,57 @@
 >
 > 两者**不要求同号**，是不同命名空间。完整规则见 [docs/SPEC.md 7.2](../../docs/SPEC.md)。
 
+## v4.1.0 (2026-10-08)
+
+### Added
+- **数据备份：导出/导入目录式备份包（含图片）**。新增 `lib/storage/backupService.ts`：导出时选一个文件夹，自动生成「物匣备份-年月日-时分秒/」，内含 `warehouse-data.json` 与 `images/` 下的全部图片；导入时选中该文件夹，先展示备份时间、匣物/分类/图片数量与缺失提示，确认后全量覆盖本机数据。图片用 `File.copy()` 直接搬运二进制，不经 base64，内存占用与单图大小无关
+- 新增 `components/DataSettingsCard.tsx`（匣主页），取代原同步卡片，含导出/导入按钮、图片进度与结果汇总
+- 新增 `lib/storage/imagePaths.ts`：图片路径归一的纯函数模块（相对名转换、扩展名归一、引用改写），配套 `__tests__/imagePaths.test.ts`
+- 入匣图片自动压缩：最长边超 1600 的图片经 `expo-image-manipulator` 缩放后落盘（新原生依赖 `expo-image-manipulator` ~56.0.26），压缩失败则回退原图，绝不因压缩丢图
+- 新增 `pruneOrphanImages()`：导入覆盖后清理无引用的图片文件（仅在备份包无图片缺失时执行，避免误删唯一副本）
+
+### Changed
+- **图片路径由绝对路径改为相对名**（数据版本 v2 → v3）：JSON 中只存 `images/<uuid>.jpg`，渲染/落盘时由 `resolveImageUri()` 拼当前设备的 `documentDirectory`。此前存的是 `file:///data/user/0/<pkg>/files/images/xxx.jpg`，换机、iOS 重装后必然失效。`normalizeWarehouseData` 会把旧数据的绝对路径自动改写为相对名（并去重），旧数据无需手工处理
+- 渲染层统一走 `resolveImageUri`：`ItemCard`、匣物详情页（画廊 + 全屏）、`ItemForm` 缩略图
+- 损坏的数据文件不再被静默清空：读取失败时先把原文件改名为 `warehouse-data.corrupt-<时间戳>.json` 保留，再以空数据继续，`DataSettingsCard` 会提示可从备份恢复
+
+### Removed
+- **移除云盘文件夹同步**：删除 `lib/storage/syncService.ts`、`lib/storage/syncSettings.ts`、`components/SyncSettingsCard.tsx`，以及 `itemRepository` / `categoryRepository` / `itemReviewService` 中 8 处 `triggerAutoExport()` 调用。写盘回归纯本地，不再有后台导出副作用
+- **移除本地 3 份 JSON 备份轮转**：`rotateBackups()` / `listBackups()` / `restoreBackup()` 全部删除。该机制只备份 JSON、不含图片，恢复后图片全是死路径；导出/导入已覆盖该场景。启动时会 best-effort 清理遗留的 `warehouse-data.backup.*.json` 与 `warehouse-sync-settings.json`
+- 移除删除墓碑（`deletedItems` / `deletedCategories`）：它是跨设备合并的产物，全量覆盖导入后已无意义
+
+### Fixed
+- 导出/导入不再丢失图片：此前图片只存在本机私有目录，JSON 里存的是绝对路径，任何"导出"都搬不走图片，导入到新设备后卡片与画廊只剩空白灰块
+
+## Unreleased
+
+### Changed
+
+- **视觉体系由「木墨」改为「纸白 + 靛蓝」**。真实设备上的反馈是上一版「配色不如原来的蓝白好看」，复盘后的结论是：**问题出在纹理，不在概念** ——
+  - 底色 `#F2EDE4`（宣纸）饱和度偏高，看着**发黄、蒙灰**；改为 `#FAF9F7`（纸白），保留一丝暖但不再发黄
+  - 木纹 / 纸纹 / 墨晕叠在界面上**又碎又脏**，附加值远不及代价；**全部删除**（`components/Texture/` 三个组件、`scripts/generate-textures.js` 及其测试、`assets/textures/`、`check:textures`）
+  - 主色朱砂 `#B03A2E` 灰调、饱和度低，看着没精神；改回鲜亮靛蓝 `#4F46E5`
+  - 文字由暖褐墨改为冷灰黑（slate 系），与冷调主色同源
+  - 阴影由暖褐色改回中性黑（暖褐阴影压在纸白上反而发脏）
+- **图标由手绘 SVG 改回 Ionicons**。上一版为「笔触感」手绘了 24×24 路径，但手绘在造型统一性、光学修正、视觉重心上明显不如专业图标库。保留 `lib/icons.ts` 的**语义名层**（`chest` / `shelf` / `search` / `seal` …），字形收敛到一处，将来换图标库只改一个文件。选中态改用 Ionicons 天然的 outline/filled 切换，比原先「叠加笔画 + 描边加粗 15%」更干净
+- 底部导航栏去掉木纹，改为纯白底 + 靛蓝滑动指示条；交互（按压 spring 回弹、图标弹性动画、切换指示条、轻触感、字重变化）全部保留
+- 启动页去掉纸纹与两处墨晕，改为纯纸白 + 靛蓝标记 + 字标
+- 品牌图重新生成：应用图标改为靛蓝渐变底 + 纸白标记（白底图标在浅色壁纸上会「消失」）；启动页标记与匣灵头像改靛蓝
+
+### Added
+
+- `scripts/__tests__/theme-contrast.test.js` 增加「旧木墨色板键已彻底移除」的断言，防止旧体系被无意带回
+- 对比度断言扩充到状态色与导航栏两态（选中/未选），并显式覆盖 `paperRaised`
+
+### Removed
+
+- `components/Texture/`（`WoodGrain` / `PaperGrain` / `PaperSurface`）
+- `scripts/generate-textures.js` 与 `scripts/__tests__/generate-textures.test.js`
+- `scripts/icon-preview.js` 与 `scripts/__tests__/icon-preview.test.js`（自定义 SVG 图标已废弃，几何守卫随之失效）
+- `assets/textures/`（可平铺纸纹 PNG）
+- `package.json` 的 `check:textures` / `check:icons` / `icons:preview` / `generate:textures`
+- `lib/theme.ts` 的木色令牌（`tabBar` / `tabBarGrain` / `tabBarBorder` / `borderOnWood` / `woodInk` / `accentOnWood` / `iconOnWood`）与纹理令牌（`textureTile`）；`texture` 保留为空对象仅为兼容历史 import
+
 ## v4.0.0 (2026-10-04)
 
 > 对应 App 版本 `2.0.0`（versionCode 4）。

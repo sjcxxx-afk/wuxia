@@ -1,243 +1,76 @@
 /**
- * 木墨图标路径库 —— 物匣
- * ========================
+ * 图标索引 —— 物匣
+ * ================
  *
- * 为什么手写 SVG 而不是继续用 Ionicons：
- *   Ionicons 的造型是**绝对几何**的（正圆、正角、严格对称），
- *   压在宣纸与木纹上会显得非常「数码」，与水墨的笔触感相斥。
- *   这里统一 24×24 视图框、圆头圆角描边（strokeLinecap/Linejoin = round），
- *   并刻意让部分笔画略不对称，制造手作感。
+ * 语义名 → Ionicons 字形名。
  *
- * 设计语言（与 theme.ts 的材质分工一致）：
- *   匣 → 结构性的容器（匣中、入匣、等级）
- *   架 → 陈列与分类（博古架）
- *   印 → 身份与归属（匣主的钤印）
- *   墨 → 灵性（匣灵的墨滴）
+ * 为什么保留这一层：调用方写 `<Icon name="chest" />` 而不是
+ * `<Ionicons name="file-tray-full-outline" />`。语义名跟着**业务概念**走
+ * （匣中 / 分类 / 匣主 / 匣灵），字形跟着**图标库**走。将来换图标库只改这个文件。
  *
- * 每个图标可选带一组 `active` 补充笔画：选中态不只是变色，
- * 笔画本身也会「多出一笔」——这是水墨里「着墨后更实」的表达。
+ * 为什么不再手写 SVG：上一版为了「笔触感」手绘了 24×24 的路径。结论是
+ * 手绘 SVG 在造型统一性、光学修正、视觉重心这些地方明显不如专业图标库 ——
+ * 放大镜被两段大弧拼成了尖椭圆，分类（原博古架）在 25px 下糊成一团。
+ * 用户的判断直接了当：「原来的图标会更有设计感」。所以回到 Ionicons。
  *
- * 坐标约定：一律 24×24，fill 由组件统一设为 none，
- * 描边粗细由 components/Icon.tsx 控制，不要在路径里硬编码。
+ * 选中态用 Ionicons 天然的 outline / filled 一对：
+ * 比「叠加笔画 + 描边加粗」更干净，也是 Ionicons 自己的惯例。
  */
+
+import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 export type IconName =
   /* 导航 */
-  | "chest" // 匣中 —— 敞口木匣
-  | "shelf" // 分类 —— 分格柜
-  | "search" // 搜索 —— 放大镜
-  | "seal" // 匣主 —— 钤印
+  | "chest" // 匣中 —— 列表
+  | "shelf" // 分类
+  | "search" // 搜索
+  | "seal" // 匣主 —— 设置/资料
   /* 核心动作 */
-  | "plus" // 新增 —— 纯十字（不用「箭头落匣」，那个像下载）
-  | "inkDrop" // 匣灵 —— 墨滴
-  | "ocr" // 截图识别 —— 取景框
-  | "file" // 文件导入 —— 简牍
+  | "plus" // 新增
+  | "inkDrop" // 匣灵 —— AI 助手
+  | "ocr" // 截图识别
+  | "file" // 文件导入
   /* 等级（匣主成长） */
-  | "level1" // 初启匣主 —— 空匣
-  | "level2" // 拾物匣主
-  | "level3" // 积物匣主
-  | "level4" // 理匣师
-  | "level5" // 丰匣主人
-  | "level6"; // 万物匣主 —— 满匣生光
+  | "level1"
+  | "level2"
+  | "level3"
+  | "level4"
+  | "level5"
+  | "level6";
 
 export type IconDef = {
-  /** 基础笔画 */
-  paths: string[];
-  /** 选中态叠加笔画（不传则选中态只靠颜色与指示器区分） */
-  active?: string[];
+  /** 默认态（线性） */
+  outline: IoniconName;
+  /** 选中态（实心）。与 outline 相同表示该图标没有实心变体 */
+  filled: IoniconName;
 };
 
-/* ------------------------------------------------------------------ 匣 */
+export const ICONS: Record<IconName, IconDef> = {
+  chest: { outline: "file-tray-full-outline", filled: "file-tray-full" },
+  shelf: { outline: "grid-outline", filled: "grid" },
+  search: { outline: "search-outline", filled: "search" },
+  seal: { outline: "diamond-outline", filled: "diamond" },
 
-/**
- * 匣中 —— 一只带盖的木匣。
- * 盖比身略宽，是「匣」这个形最关键的识别特征。
- */
-const chest: IconDef = {
-  paths: [
-    "M3 10.4 V7.8 A2.2 2.2 0 0 1 5.2 5.6 H18.8 A2.2 2.2 0 0 1 21 7.8 V10.4",
-    "M3 10.4 H21",
-    "M4.4 10.4 H19.6 V19.2 A1.8 1.8 0 0 1 17.8 21 H6.2 A1.8 1.8 0 0 1 4.4 19.2 Z",
-    "M10.3 13.9 H13.7 V17.5 H10.3 Z",
-  ],
-  // 选中：盖面添一道木纹，扣上添一点高光
-  active: ["M7 7.9 H13.5", "M12 15.1 V16.3"],
-};
+  plus: { outline: "add-circle", filled: "add-circle" },
+  inkDrop: { outline: "sparkles", filled: "sparkles" },
+  ocr: { outline: "scan-outline", filled: "scan" },
+  file: { outline: "document-text-outline", filled: "document-text" },
 
-/**
- * 新增 —— 纯十字。
- *
- * 原先用的是「箭头落进敞口匣」（ingest），但那个造型就是通用的
- * **下载**符号：箭头朝下 + 托盘。用户看到的第一反应是「下载」，不是「新增」。
- * 「入匣」的叙事交给文案和页面标题，图标本身必须服从通用直觉。
- *
- * 圆头端点由 Icon 组件统一施加（strokeLinecap=round），这里只给几何。
- */
-const plus: IconDef = {
-  paths: ["M12 5.4 V18.6", "M5.4 12 H18.6"],
-};
-
-/* ------------------------------------------------------------------ 架 */
-
-/**
- * 分类 —— 分格柜。
- *
- * 原先画的是「博古架」：架板 + 三件器物。渲染出来是一团模糊色块 ——
- * 三件器物宽高各异（4.4 / 3.4 / 2.6）、最右一件还顶到架板右端，
- * 缩到 25px 完全读不出「陈列」的意思，只剩脏。
- *
- * 改成四格柜：外框 + 一层横板 + 一道竖隔。25px 下每一笔都够长、
- * 轮廓封闭，能立刻读成「一个柜子分了几格」，也就是分类。
- * 仍不用裸 grid（九宫格）：那是仪表盘语言；带外框的柜子才呼应「匣」。
- */
-const shelf: IconDef = {
-  paths: [
-    // 外框（圆角矩形，r=2）
-    "M5.6 4.6 H18.4 A2.2 2.2 0 0 1 20.6 6.8 V17.2 A2.2 2.2 0 0 1 18.4 19.4 H5.6 A2.2 2.2 0 0 1 3.4 17.2 V6.8 A2.2 2.2 0 0 1 5.6 4.6 Z",
-    // 横板画成两条线，板才有厚度（也更像木）
-    "M3.4 11.4 H20.6",
-    "M3.4 13.2 H20.6",
-    // 竖隔：上下都贯通
-    "M12 4.6 V19.4",
-  ],
-  // 选中：上格添一件器物（横放的小件），让「陈列」这层含义回来
-  active: ["M5.6 9.4 H9.6"],
-};
-
-/* ---------------------------------------------------------------- 印 */
-
-/**
- * 匣主 —— 钤印。
- * 全局唯一高彩度色是朱砂，而朱砂在现实中就是印泥。
- * 内里三横模拟篆刻残文，比人像剪影更有辨识度。
- */
-const seal: IconDef = {
-  paths: [
-    "M6.4 6.4 H17.6 V17.6 H6.4 Z",
-    "M9.2 9.6 H14.8",
-    "M9.2 12.2 H14.8",
-    "M9.2 14.8 H12.6",
-  ],
-  // 选中：印边添两处缺口，像印泥压出来的边
-  active: ["M4.4 9.6 V14.4", "M19.6 9.6 V14.4"],
-};
-
-/* ---------------------------------------------------------------- 墨 */
-
-/** 匣灵 —— 墨滴。一笔高光，避免变成「静态雨滴」 */
-const inkDrop: IconDef = {
-  paths: [
-    "M12 3.2 C15.7 7.9 17.8 10.9 17.8 13.6 A5.8 5.8 0 0 1 6.2 13.6 C6.2 10.9 8.3 7.9 12 3.2 Z",
-    "M9.5 14.6 A2.7 2.7 0 0 0 12.2 17.3",
-  ],
-  active: ["M6.2 13.6 A5.8 5.8 0 0 0 12 19.4"],
-};
-
-/* -------------------------------------------------------------- 检视 */
-
-/**
- * 搜索 —— 放大镜。
- *
- * 圆必须拆成**两段正好 180° 的半弧**：弦长等于直径时，large-arc-flag 才无意义。
- * 之前写成两段 large-arc=1 + sweep=1，而弦长 12.4 < 直径 12.8，
- * 两段「超过半周」的弧拼出来是尖椭圆 —— 渲染出来是个歪蛋形。
- */
-const search: IconDef = {
-  paths: [
-    // 圆心 (10.8,10.8) r=6.5 → 左右端点 (4.3,10.8) / (17.3,10.8)，弦长 13.0 = 直径
-    "M4.3 10.8 A6.5 6.5 0 0 1 17.3 10.8 A6.5 6.5 0 0 1 4.3 10.8 Z",
-    // 手柄起点落在圆上 45° 处 (15.4,15.4)，否则会与圆脱开
-    "M15.4 15.4 L20.7 20.7",
-  ],
-  // 选中：镜面内一道弧光，靠加粗也仍能看出是一道弧
-  active: ["M7.6 9.6 A3.4 3.4 0 0 1 9.6 7.6"],
-};
-
-/** 截图识别 —— 取景框四角 + 中央取景线 */
-const ocr: IconDef = {
-  paths: [
-    "M4 8.4 V5.6 A1.6 1.6 0 0 1 5.6 4 H8.4",
-    "M15.6 4 H18.4 A1.6 1.6 0 0 1 20 5.6 V8.4",
-    "M20 15.6 V18.4 A1.6 1.6 0 0 1 18.4 20 H15.6",
-    "M8.4 20 H5.6 A1.6 1.6 0 0 1 4 18.4 V15.6",
-    "M8.4 12 H15.6",
-  ],
-  active: ["M12 8.4 V15.6"],
-};
-
-/** 文件导入 —— 简牍（竹简），比「文档」更贴木墨语境 */
-const file: IconDef = {
-  paths: [
-    "M5.4 4.6 H18.6 A1 1 0 0 1 19.6 5.6 V18.4 A1 1 0 0 1 18.6 19.4 H5.4 A1 1 0 0 1 4.4 18.4 V5.6 A1 1 0 0 1 5.4 4.6 Z",
-    "M8.4 8.6 H15.6",
-    "M8.4 12 H15.6",
-    "M8.4 15.4 H12.6",
-  ],
-  active: ["M8.4 9.9 H15.6"],
-};
-
-/* -------------------------------------------------------------- 等级 */
-
-/**
- * 匣主等级 —— 一只木匣逐渐被填满，最后满匣生光。
- * 比 emoji（📦🔰📚🎯👑🌟）好在：与整套线性图标同源，
- * 且「越来越满」本身就是在讲这个产品要讲的故事。
- */
-const LEVEL_CHEST = [
-  "M5 14.8 H19 V20 A1.5 1.5 0 0 1 17.5 21.5 H6.5 A1.5 1.5 0 0 1 5 20 Z",
-  "M4 14.8 V12.8 A2 2 0 0 1 6 10.8 H18 A2 2 0 0 1 20 12.8 V14.8",
-];
-
-/** 匣内的一道横线，代表放进来的物 */
-const levelLines = (ys: number[]) => ys.map((y) => `M9 ${y} H15`);
-
-export const LEVEL_ICONS: Record<number, IconDef> = {
-  // 初启匣主：空匣
-  1: { paths: LEVEL_CHEST },
-  // 拾物匣主：一层
-  2: { paths: [...LEVEL_CHEST, ...levelLines([17.6])] },
-  // 积物匣主：两层
-  3: { paths: [...LEVEL_CHEST, ...levelLines([16.5, 19])] },
-  // 理匣师：三层，接近装满
-  4: { paths: [...LEVEL_CHEST, ...levelLines([15.8, 17.6, 19.4])] },
-  // 丰匣主人：满匣
-  5: { paths: [...LEVEL_CHEST, ...levelLines([15.4, 16.9, 18.4, 19.9])] },
-  // 万物匣主：满匣生光
-  6: {
-    paths: [
-      ...LEVEL_CHEST,
-      ...levelLines([15.4, 16.9, 18.4, 19.9]),
-      // 溢出的光
-      "M12 9.4 V6.6",
-      "M6.5 11.4 L4.7 9.6",
-      "M17.5 11.4 L19.3 9.6",
-    ],
-  },
+  // 等级：从「一个空匣」递进到「满匣生光」
+  level1: { outline: "cube-outline", filled: "cube" },
+  level2: { outline: "file-tray-outline", filled: "file-tray" },
+  level3: { outline: "file-tray-full-outline", filled: "file-tray-full" },
+  level4: { outline: "albums-outline", filled: "albums" },
+  level5: { outline: "diamond-outline", filled: "diamond" },
+  level6: { outline: "sparkles", filled: "sparkles" },
 };
 
 /** 等级序号 → 图标名，供 ProfileHeader 等处使用 */
 export const LEVEL_ICON_NAMES = [1, 2, 3, 4, 5, 6].map(
   (n) => `level${n}` as IconName,
 );
-
-/* ---------------------------------------------------------------- 索引 */
-
-export const ICONS: Record<IconName, IconDef> = {
-  chest,
-  shelf,
-  search,
-  seal,
-  plus,
-  inkDrop,
-  ocr,
-  file,
-  level1: LEVEL_ICONS[1],
-  level2: LEVEL_ICONS[2],
-  level3: LEVEL_ICONS[3],
-  level4: LEVEL_ICONS[4],
-  level5: LEVEL_ICONS[5],
-  level6: LEVEL_ICONS[6],
-};
 
 export const ICON_NAMES = Object.keys(ICONS) as IconName[];
 

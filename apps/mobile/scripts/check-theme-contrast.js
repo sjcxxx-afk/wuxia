@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /**
- * 木墨配色对比度守卫
- * ====================
+ * 配色对比度守卫
+ * ==============
  *
- * 为什么需要它：宣纸底 + 淡墨 + 木色这一套天然「柔」，稍不注意就会滑到
- * 3:1 上下——那是大字号图形才够的门槛，正文和小标签直接看不清。
+ * 为什么需要它：无论风格怎么换，「底色 + 弱化文字」这一类的组合都很容易
+ * 滑到 3:1 上下 —— 那是大字号图形才够的门槛，正文和小标签直接看不清。
  * 注释里写「注意压深过」是拦不住后续改动的，所以把 AA 变成可执行断言。
+ *
+ * 注意：断言引用的是 **palette 的键名**。换配色时键名若变，这里的 PAIRS
+ * 会直接抛「断言引用了不存在的色板键」，而不是静默跳过 —— 这是刻意的。
  *
  * 它真的去读 lib/theme.ts 里 palette 的十六进制值，而不是复制一份到脚本里：
  * 改了 theme 这里的断言会跟着变，不会出现「脚本里的颜色早就过期了」。
@@ -83,38 +86,52 @@ const AA_LARGE_TEXT = 3.0;
  *   why   —— 不达标的后果，写清楚才有人在乎
  */
 const PAIRS = [
-  { label: "正文 / 宣纸底", fg: "ink", bg: "paper", min: AA_TEXT, why: "列表项名称全部不可读" },
+  { label: "正文 / 纸白底", fg: "ink", bg: "paper", min: AA_TEXT, why: "列表项名称全部不可读" },
   { label: "正文 / 卡片面", fg: "ink", bg: "paperRaised", min: AA_TEXT, why: "卡片标题不可读" },
-  { label: "次级文字 / 宣纸底", fg: "inkSecondary", bg: "paper", min: AA_TEXT, why: "品牌名、日期等失效" },
+  { label: "次级文字 / 纸白底", fg: "inkSecondary", bg: "paper", min: AA_TEXT, why: "品牌名、日期等失效" },
   { label: "次级文字 / 卡片面", fg: "inkSecondary", bg: "paperRaised", min: AA_TEXT, why: "卡片副标题失效" },
   {
-    label: "弱化文字 / 宣纸底",
+    label: "弱化文字 / 纸白底",
     fg: "inkTertiary",
     bg: "paper",
     min: AA_TEXT,
-    why: "12px 以下计数与提示看不清（这组只有 4.78:1，几乎没有余量）",
+    why: "12px 以下计数与提示看不清（这组几乎没有余量，不要再调浅）",
   },
-  { label: "朱砂强调 / 宣纸底", fg: "cinnabar", bg: "paper", min: AA_TEXT, why: "选中态标签不可读" },
-  { label: "朱砂强调 / 卡片面", fg: "cinnabar", bg: "paperRaised", min: AA_TEXT, why: "卡片内强调失效" },
-  { label: "苔绿 / 宣纸底", fg: "moss", bg: "paper", min: AA_TEXT, why: "成功态文字不可读" },
-  { label: "危险色 / 宣纸底", fg: "danger", bg: "paper", min: AA_TEXT, why: "删除确认文字不可读" },
-  { label: "警示色 / 宣纸底", fg: "warning", bg: "paper", min: AA_TEXT, why: "提醒横幅文字不可读" },
+  {
+    label: "弱化文字 / 卡片面",
+    fg: "inkTertiary",
+    bg: "paperRaised",
+    min: AA_TEXT,
+    why: "卡片内小字失效",
+  },
+  { label: "靛蓝强调 / 纸白底", fg: "indigo", bg: "paper", min: AA_TEXT, why: "选中态标签与链接不可读" },
+  { label: "靛蓝强调 / 卡片面", fg: "indigo", bg: "paperRaised", min: AA_TEXT, why: "卡片内强调失效" },
+  { label: "成功绿 / 纸白底", fg: "success", bg: "paper", min: AA_TEXT, why: "成功态文字不可读" },
+  { label: "危险红 / 纸白底", fg: "danger", bg: "paper", min: AA_TEXT, why: "删除确认文字不可读" },
+  { label: "警示橙 / 纸白底", fg: "warning", bg: "paper", min: AA_TEXT, why: "提醒横幅文字不可读" },
 
-  // 导航栏底色是浅木，这几组直接决定底部导航能不能用
-  { label: "焦墨 / 浅木底（导航文字）", fg: "ink", bg: "woodLight", min: AA_TEXT, why: "导航标签不可读" },
-  { label: "深朱砂 / 浅木底（选中图标）", fg: "cinnabarDeep", bg: "woodLight", min: AA_TEXT, why: "选中与未选中分不出来" },
-  { label: "淡墨 / 浅木底（未选图标）", fg: "inkSecondary", bg: "woodLight", min: AA_LARGE_TEXT, why: "未选中图标对比不足" },
-  { label: "焦墨 / 木色", fg: "ink", bg: "wood", min: AA_TEXT, why: "木面容器上的文字不可读" },
+  // 底部导航栏底色是纯白（surface），这几组直接决定导航能不能用
+  { label: "导航标签（选中）", fg: "indigo", bg: "paperRaised", min: AA_TEXT, why: "选中标签不可读" },
+  { label: "导航标签（未选）", fg: "inkSecondary", bg: "paperRaised", min: AA_TEXT, why: "未选标签不可读" },
 ];
 
 /**
- * 反向登记：某些组合是**故意**不达标的（拿来做纹理线、分隔线），
+ * 反向登记：某些组合是**故意**不达标的（拿来做分隔线、装饰图形），
  * 记在这里是为了让「它为什么不能用」有据可查，避免后人误用成前景色。
  */
 const INTENTIONAL_FAILURES = [
-  { label: "木纹线 / 浅木底", fg: "wood", bg: "woodLight", why: "仅作纹理线条，不可用于任何文字或图标" },
-  { label: "深木色 / 浅木底", fg: "woodDark", bg: "woodLight", why: "仅 2.9:1，低于非文字 3:1 门槛，不可作木面图标色" },
-  { label: "普通朱砂 / 浅木底", fg: "cinnabar", bg: "woodLight", why: "仅 3.5:1，木面上必须改用 cinnabarDeep" },
+  {
+    label: "分割线 / 纸白底",
+    fg: "paperDeep",
+    bg: "paper",
+    why: "仅作分隔线与描边，不可用于任何文字",
+  },
+  {
+    label: "凹陷面 / 纸白底",
+    fg: "paperSunken",
+    bg: "paper",
+    why: "仅作 toggle 槽、输入框底等容器面，不可作前景",
+  },
 ];
 
 /* -------------------------------------------------------------- 主流程 */
@@ -154,7 +171,7 @@ function main() {
   }
   const failures = results.filter((r) => !r.pass);
 
-  console.log("[theme-contrast] 木墨配色对比度实测（WCAG 2.1）");
+  console.log("[theme-contrast] 配色对比度实测（WCAG 2.1）");
   for (const r of results) {
     console.log(
       `  ${r.pass ? "✓" : "✗"} ${r.label.padEnd(26)} ${r.ratio.toFixed(2).padStart(6)}:1` +
@@ -172,7 +189,7 @@ function main() {
   }
 
   if (failures.length > 0) {
-    console.error("\n[theme-contrast] 以下组合未达 WCAG AA（宣纸底太柔，很容易踩）：");
+    console.error("\n[theme-contrast] 以下组合未达 WCAG AA：");
     for (const f of failures) {
       console.error(
         `  ✗ ${f.label}：实测 ${f.ratio.toFixed(2)}:1，需 ≥${f.min} —— ${f.why}`,
@@ -181,7 +198,7 @@ function main() {
     console.error("\n  修法：压深前景色或提亮底色，别靠加粗凑。改完直接重跑本脚本。");
     return 1;
   }
-  console.log("[theme-contrast] 通过：所有正文组合达 AA，木面组合达标。");
+  console.log("[theme-contrast] 通过：所有正文组合达 WCAG AA。");
   return 0;
 }
 

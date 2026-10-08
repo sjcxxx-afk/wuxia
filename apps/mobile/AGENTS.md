@@ -37,58 +37,65 @@
 └── README.md             ← 项目整体说明
 ```
 
-## 视觉体系：木墨（务必先读）
+## 视觉体系：纸白 + 靛蓝（务必先读）
 
-产品叫「物匣」，匣就是木头做的；中式绘画里专讲器物收藏的「博古图」正是水墨。
-所以**木纹不是装饰，是产品本体的隐喻**。视觉以「宣纸 + 木 + 墨 + 朱砂」四组材质构成。
+**极简、干净、不要纹理。** 视觉由「纸白底 + 灰黑文字 + 靛蓝强调」三档构成。
 
-### 两条铁律（违反即视为 bug）
+> 上一版是「木墨」（宣纸底 + 木纹 + 纸纹 + 墨晕 + 朱砂）。立意没错，
+> 但真实设备上的反馈是「看着发黄、蒙灰，不如原来的蓝白好看」。
+> 复盘结论：**问题出在纹理，不在概念**。木纹 / 纸纹 / 墨晕叠在界面上又碎又脏，
+> 附加值远不及代价，于是连同组件与生成脚本一并删除。
+> **不要再加贴图质感** —— 要层次就用间距、字重、阴影、留白。
 
-1. **纹理克制**：木纹不透明度 ≤ 10%，纸纹 ≤ 6%。由 `theme.texture` 硬钳，
-   `WoodGrain` / `PaperGrain` 组件内部会强制 clamp。
-   48px 以下的小控件（chip / badge / 小按钮）内部**禁止**放纹理，会糊成噪点。
-2. **对比度**：正文必须过 WCAG AA。`npm run check:theme` 会实测所有前景/背景组合，
+### 铁律（违反即视为 bug）
+
+1. **正文必须过 WCAG AA（4.5:1）**。`npm run check:theme` 会实测所有前景/背景组合，
    不要靠目测。改动 `lib/theme.ts` 的 palette 后必须重跑。
+   换配色时 PAIRS 里的键名要一起改 —— 键名不匹配会**抛错**而不是静默跳过。
+2. **不要硬编码色值**，一律取 `lib/theme.ts` 的语义令牌（`colors.*`）。
 
-### 材质分工
+### 三档用色
 
-| 承载 | 用什么 | 落在哪 |
-|------|--------|--------|
-| 匣（容器结构） | 木纹 | 底部导航栏、顶栏 |
-| 纸（内容承载） | 宣纸色 + 极淡墨晕 | 页面底（`PaperSurface`） |
-| 墨（内容） | 焦墨→淡墨→清墨三级 | 所有文字 |
-| 印（强调） | 朱砂 | 选中态、主操作、角标 |
+| 角色 | 令牌 | 用在哪 |
+|------|------|--------|
+| 纸白 | `colors.background` / `surface` | 页面底、卡片、导航栏 |
+| 灰黑 | `colors.text` / `textSecondary` / `textTertiary` | 所有文字，三级 |
+| 靛蓝 | `colors.accent` | **唯一品牌色**：选中态、主操作、指示条 |
 
-**朱砂是全局唯一高彩度色**，用量必须极小。木面上必须用 `colors.accentOnWood`
-（深朱砂）而不是 `colors.accent` —— 普通朱砂在浅木底上只有 3.5:1，不达标。
+状态色 `success` / `warning` / `danger` 取的是能满足 AA 的深档，可直接当文字色用。
+`textTertiary`（#6B7280）在纸白底上约 4.6:1，**几乎没有余量，不要再调浅**。
 
 ### 关键文件
 
 | 文件 | 职责 |
 |------|------|
-| `lib/theme.ts` | 设计令牌唯一来源。色板 / 间距 / 圆角 / 阴影 / 字号 / 动效 / 纹理上限 |
-| `lib/icons.ts` | 木墨图标路径库（24×24 圆头描边）。新增图标在这里加，不要直接写 SVG |
-| `components/Icon.tsx` | 图标组件。**不要**在业务代码里直接用 `Ionicons` |
-| `components/Texture/WoodGrain.tsx` | 矢量木纹（不用位图：木纹有方向，拉伸必失真） |
-| `components/Texture/PaperSurface.tsx` | 页面根容器（宣纸底 + 矢量墨晕） |
-| `components/Texture/PaperGrain.tsx` | 纸纹平铺（位图）。**fine 与 fiber 不可叠加**，会破 6% 铁律 |
-| `components/InkSplash.tsx` | 水墨启动页 |
-| `components/WoodTabBar.tsx` | 底部导航栏 |
+| `lib/theme.ts` | 设计令牌唯一来源。色板 / 间距 / 圆角 / 阴影 / 字号 / 动效 |
+| `lib/icons.ts` | 语义名 → Ionicons 字形名。新增图标在这里映射 |
+| `components/Icon.tsx` | 图标组件。暴露**语义名**，选中态自动切 outline/filled |
+| `components/InkSplash.tsx` | 启动页（纯纸白 + 图标 + 字标，无纹理） |
+| `components/WoodTabBar.tsx` | 底部导航栏（纯白 + 靛蓝滑动指示条）。名字是历史遗留 |
+
+### 图标
+
+- 用 **Ionicons**，不要手写 SVG。上一版手绘过一套 24×24 路径，结论是
+  手绘在造型统一性、光学修正、视觉重心上明显不如专业图标库
+  （放大镜被两段大弧拼成尖椭圆、分类图标在 25px 下糊成一团）。
+- 业务代码写 `<Icon name="chest" />`（语义名），**不要**写 `<Ionicons name="file-tray-full-outline" />`。
+  字形全部收在 `lib/icons.ts`，换图标库只改那一个文件。
+- 选中态用 `active` 属性切 Ionicons 的实心变体，不要自己做加粗或叠笔画。
 
 ### 资源与脚本
 
-纹理与图标都是**脚本生成**的，不要手改 PNG，也不要凭肉眼判断接缝：
+品牌图（应用图标 / 启动页标记 / 匣灵头像）是**脚本生成**的，不要手改 PNG：
 
 ```bash
-npm run generate:textures   # 重新生成 assets/textures/*.png
-npm run generate:icons      # 重新生成图标与匣灵头像
-npm run check:textures      # 校验磁盘产物与生成器是否漂移
+npm run generate:icons   # 重新生成 assets/ 下的品牌图
 ```
 
-- `scripts/generate-textures.js` —— 零依赖，手写 PNG 编码器 + 可平铺值噪声 fBm。
-  用**格点周期化**实现无缝平铺。
-- `scripts/icons.js` —— 用**有向距离场（SDF）解析抗锯齿**绘制木匣标记与朱砂印。
+- `scripts/icons.js` —— 用**有向距离场（SDF）解析抗锯齿**绘制标记。
   不用 AI 重绘：确定性、可复算、可回归。
+- 改了 `lib/theme.ts` 的 palette 后，记得同步 `scripts/icons.js` 顶部的 `BRAND`
+  并重跑 `generate:icons`，否则应用图标会与界面配色脱节。
 
 新增原生依赖**必须** `npx expo install`（走官方矩阵），手写版本号会被
 `check:deps` 拦下。
@@ -126,8 +133,8 @@ release 包里没有红屏浮层，表现就是**启动即崩**。
 - 数据访问通过 `lib/repositories/` 层，页面不直接操作 `lib/storage/`
 - 所有字段属性名使用 camelCase
 - **不要在组件里硬编码色值**，一律取 `lib/theme.ts` 的语义令牌（`colors.*`）
-- **不要在业务代码里直接用 `Ionicons`**，品牌与功能图标走 `components/Icon.tsx`；
-  通用图标（关闭 / 箭头 / 删除 / 相机）保留 Ionicons 不算违规
+- **不要在业务代码里直接写 `Ionicons name="..."`**，走 `components/Icon.tsx` 的语义名
+- **不要给界面加纹理 / 贴图**，见「视觉体系」一节的历史教训
 - 不要添加 Web 平台配置或依赖（如 `react-dom`、`react-native-web`）
 
 ## 运行命令

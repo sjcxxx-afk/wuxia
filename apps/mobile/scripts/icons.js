@@ -32,12 +32,17 @@ const OUT_MONO = "assets/adaptive-icon-monochrome.png";
 const OUT_AVATAR = "assets/xialing-avatar.png";
 const OUT_SPLASH_MARK = "assets/splash-mark.png";
 
-/** 品牌色，与 lib/theme.ts 的 palette 逐字对应 */
+/**
+ * 品牌色 —— 与 lib/theme.ts 的 palette 保持一致（纸白 + 靛蓝）。
+ * 改了 theme 记得同步这里并重跑 npm run generate:icons。
+ */
 const BRAND = {
-  paperTop: [250, 247, 241], // #FAF7F1
-  paper: [242, 237, 228], // #F2EDE4
-  ink: [43, 39, 35], // #2B2723
-  cinnabar: [176, 58, 46], // #B03A2E
+  paperTop: [255, 255, 255], // #FFFFFF
+  paper: [250, 249, 247], // #FAF9F7
+  ink: [31, 41, 55], // #1F2937
+  indigo: [79, 70, 229], // #4F46E5
+  /** 靛蓝亮档 —— 应用图标的渐变顶端，让方块不至于死平 */
+  indigoLight: [118, 111, 246],
   black: [0, 0, 0], // Android 13+ 主题图标由系统着色，必须纯黑
 };
 
@@ -337,23 +342,21 @@ function chestShapesForTest(size, ratio) {
 }
 
 /**
- * 匣灵头像 —— 朱砂印。
+ * 匣灵头像 —— 靛蓝同心圆标记。
  *
  * app/(tabs)/search/qa.tsx 用 assets/xialing-avatar.png 作匣灵（AI 助手）的头像。
- * 原文件其实与应用图标字节相同（占位符残留），靛蓝底与木墨冲突。
- * 匣灵是「钤印」的角色，用朱砂印做头像正好扣住品牌：全局唯一高彩度色，
- * 在现实里就是印泥。形状仍是 SDF 圆，解析抗锯齿。
+ * 形状是 SDF 圆，解析抗锯齿：外圈靛蓝、内圈纸白形成一道环、中心一个小点。
  */
 function renderSeal(size) {
   const out = Buffer.alloc(size * size * 4);
   const c = size / 2;
   const shapes = [
-    // 外圈：朱砂印面
-    { r: size * 0.46, color: BRAND.cinnabar },
-    // 内圈：宣纸留白，形成一道环
+    // 外圈：靛蓝
+    { r: size * 0.46, color: BRAND.indigo },
+    // 内圈：纸白留白，形成一道环
     { r: size * 0.34, color: BRAND.paperTop },
-    // 印心：焦墨点
-    { r: size * 0.13, color: BRAND.ink },
+    // 圆心：靛蓝点
+    { r: size * 0.13, color: BRAND.indigo },
   ];
 
   for (const s of shapes) {
@@ -381,24 +384,28 @@ function main() {
   const files = [
     {
       out: OUT_ICON,
-      buf: renderIcon(1024, 0.7, BRAND.ink, [BRAND.paperTop, BRAND.paper]),
-      note: "启动器图标：宣纸竖向渐变底 + 焦墨木匣",
+      // 靛蓝渐变底 + 纸白标记：启动器图标要在桌面上立得住，
+      // 白底图标在浅色壁纸上会「消失」，所以底色用品牌色
+      buf: renderIcon(1024, 0.7, BRAND.paperTop, [BRAND.indigoLight, BRAND.indigo]),
+      note: "启动器图标：靛蓝竖向渐变底 + 纸白标记",
     },
     {
       out: OUT_ADAPTIVE,
-      // Android 自适应图标的安全区是中心 66%，0.6 留足余量
-      buf: renderIcon(1024, 0.6, BRAND.ink, null),
-      note: "自适应图标前景：透明底 + 焦墨木匣（形状由系统裁切）",
+      // Android 自适应图标的安全区是中心 66%，0.6 留足余量。
+      // 底色由 app.json 的 adaptiveIcon.backgroundColor 提供（靛蓝），
+      // 所以前景用纸白标记，负形透明处会透出靛蓝。
+      buf: renderIcon(1024, 0.6, BRAND.paperTop, null),
+      note: "自适应图标前景：透明底 + 纸白标记（形状由系统裁切）",
     },
     {
       out: OUT_MONO,
       buf: renderIcon(1024, 0.6, BRAND.black, null),
-      note: "Android 13+ 主题图标：透明底 + 纯黑木匣（由系统着色）",
+      note: "Android 13+ 主题图标：透明底 + 纯黑标记（由系统着色）",
     },
     {
       out: OUT_AVATAR,
       buf: renderSeal(512),
-      note: "匣灵头像：朱砂印（search/qa.tsx 的欢迎态使用）",
+      note: "匣灵头像：靛蓝同心圆标记（search/qa.tsx 的欢迎态使用）",
     },
     {
       // 启动页标记：**必须透明底**。
@@ -410,8 +417,8 @@ function main() {
       // 省略 image 会让 AAPT2 直接报 "resource drawable/splashscreen_logo not found"，
       // release 构建挂在 :app:processReleaseResources。所以这张图是必需的。
       out: OUT_SPLASH_MARK,
-      buf: renderIcon(1024, 0.66, BRAND.ink, null),
-      note: "启动页标记：透明底 + 焦墨木匣（叠在 app.json 的 splash backgroundColor 之上）",
+      buf: renderIcon(1024, 0.66, BRAND.indigo, null),
+      note: "启动页标记：透明底 + 靛蓝标记（叠在 app.json 的 splash backgroundColor 之上）",
     },
   ];
 

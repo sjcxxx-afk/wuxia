@@ -14,7 +14,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import Icon from "./Icon";
-import PaperGrain from "./Texture/PaperGrain";
 import { colors } from "../lib/theme";
 import {
   INK_SPLASH_ENTER_MS,
@@ -39,7 +38,7 @@ type Props = {
 /** 时序常量与退场闸门都在 lib/splashTiming.ts（纯逻辑，可被测试钉住） */
 
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const { width: SCREEN_W } = Dimensions.get("window");
 
 /**
  * 水墨启动页
@@ -148,21 +147,11 @@ export default function InkSplash({ onEntered, onExited, active }: Props) {
 
   return (
     <Animated.View style={[styles.root, veilStyle]} pointerEvents="none">
-      {/* 宣纸上洇开的两处淡墨 */}
-      <View style={styles.washTop} />
-      <View style={styles.washBottom} />
-      {/* fiber 变体只在这里用：启动页是唯一不滚动的整屏表面，
-          不会与页面底部的 fine 纹理叠加（叠加会破 6% 铁律） */}
-      <PaperGrain variant="fiber" />
-
+      {/* 启动页保持纯净：只有纸白底 + 图标 + 字标。
+          上一版这里叠了纸纹与两处墨晕，真实设备上结论是「又把界面弄脏了」 */}
       <View style={styles.content}>
         <Animated.View style={chestStyle}>
-          <Icon
-            name="chest"
-            size={Math.min(132, SCREEN_W * 0.3)}
-            color={colors.text}
-            strokeWidth={1.5}
-          />
+          <Icon name="chest" size={Math.min(112, SCREEN_W * 0.26)} color={colors.accent} />
         </Animated.View>
 
         <Animated.View style={[styles.titleBlock, titleStyle]}>
@@ -191,27 +180,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   content: { alignItems: "center" },
-  washTop: {
-    position: "absolute",
-    top: -SCREEN_H * 0.18,
-    left: -SCREEN_W * 0.2,
-    width: SCREEN_W * 1.4,
-    height: SCREEN_H * 0.55,
-    borderRadius: SCREEN_W,
-    backgroundColor: colors.text,
-    opacity: 0.035,
-  },
-  washBottom: {
-    position: "absolute",
-    bottom: -SCREEN_H * 0.24,
-    right: -SCREEN_W * 0.25,
-    width: SCREEN_W * 1.3,
-    height: SCREEN_H * 0.5,
-    borderRadius: SCREEN_W,
-    backgroundColor: colors.text,
-    opacity: 0.025,
-  },
-  titleBlock: { alignItems: "center", marginTop: 26 },
+  titleBlock: { alignItems: "center", marginTop: 22 },
   title: {
     fontSize: 34,
     fontWeight: "700",

@@ -13,16 +13,15 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 
 import Icon from "./Icon";
-import WoodGrain from "./Texture/WoodGrain";
 import { TAB_ICONS, type IconName } from "../lib/icons";
 import { colors, motion, spacing } from "../lib/theme";
 
-/** 顶部滑动的朱砂标记（「闩」）尺寸 */
+/** 顶部滑动的选中标记尺寸 */
 const MARK_WIDTH = 22;
 const MARK_HEIGHT = 3;
 /** 图标尺寸 */
 const ICON_SIZE = 25;
-/** 木条高度（不含底部安全区） */
+/** 导航栏高度（不含底部安全区） */
 export const WOOD_TAB_BAR_HEIGHT = 58;
 
 /**
@@ -107,7 +106,7 @@ function TabItemBase({ iconName, label, isFocused, onPress, onLongPress }: TabIt
       onPress={onPress}
       onLongPress={onLongPress}
       // Android 原生水波纹给即时的触觉反馈，与缩放动画叠加不冲突
-      android_ripple={{ color: colors.woodInk, borderless: false }}
+      android_ripple={{ color: colors.ripple, borderless: false }}
       accessibilityRole="tab"
       accessibilityState={{ selected: isFocused }}
       accessibilityLabel={label}
@@ -116,10 +115,10 @@ function TabItemBase({ iconName, label, isFocused, onPress, onLongPress }: TabIt
       <Animated.View style={[styles.item, containerStyle]}>
         <Animated.View style={[styles.iconWrap, iconWrapStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, inactiveStyle]}>
-            <Icon name={iconName} size={ICON_SIZE} color={colors.iconOnWood} />
+            <Icon name={iconName} size={ICON_SIZE} color={colors.icon} />
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
-            <Icon name={iconName} size={ICON_SIZE} color={colors.accentOnWood} active />
+            <Icon name={iconName} size={ICON_SIZE} color={colors.accent} active />
           </Animated.View>
         </Animated.View>
 
@@ -142,16 +141,20 @@ function TabItemBase({ iconName, label, isFocused, onPress, onLongPress }: TabIt
 const TabItem = memo(TabItemBase);
 
 
-/* ---------------------------------------------------------------- 木架 */
+/* ------------------------------------------------------------ 底部导航 */
 
 /**
- * 底部导航栏 —— 一块浅木条。
+ * 底部导航栏。
  *
- * 为什么是木条而不是浮层药丸：产品叫「物匣」，木条读作一层搁板，
- * 四个图标是搁板上的四件器物。浮层玻璃那套是通用 App 语汇，和木墨冲突。
+ * 上一版是「木架」：浅木条 + 矢量木纹 + 朱砂标记。真实设备上的结论是
+ * 木纹让底栏显得脏，所以这里回归干净的纯白条 + 靛蓝标记。
  *
- * 木纹用矢量绘制（见 Texture/WoodGrain），因此在任意宽度下都锐利、
- * 不会有位图拉伸的失真，滚动与旋转时也不掉帧。
+ * 保留下来的交互（这部分用户没有异议，是本轮真正有价值的产出）：
+ *   · 按压 spring 回弹（0.94）
+ *   · 图标 outline → filled 切换 + 一次性弹跳
+ *   · 顶部滑动指示条
+ *   · 切换时的一次轻触感
+ *   · 标签字重 500 → 700
  */
 function WoodTabBarBase({ state, descriptors, navigation, bottomInset }: WoodTabBarProps) {
   const reduced = useReducedMotion();
@@ -163,7 +166,7 @@ function WoodTabBarBase({ state, descriptors, navigation, bottomInset }: WoodTab
   const { index, routes } = state;
   const tabWidth = routes.length > 0 ? barWidth / routes.length : 0;
 
-  // 朱砂标记滑到选中项
+  // 靛蓝标记滑到选中项
   useEffect(() => {
     if (tabWidth <= 0) return;
     markX.value = reduced
@@ -171,7 +174,7 @@ function WoodTabBarBase({ state, descriptors, navigation, bottomInset }: WoodTab
       : withSpring(index * tabWidth, motion.spring);
   }, [index, tabWidth, reduced, markX]);
 
-  // 切换时的轻触感：木质「叩」一下。
+  // 切换时的一次轻触感。
   // 必须用 try/catch 而不是只挂 .catch：原生模块缺失时 Haptics.selectionAsync
   // 本身会是 undefined，调用它抛的是**同步** TypeError，Promise 的 .catch 接不到。
   // 这种异常发生在 useEffect 里，会直接把整棵渲染树打崩 —— release 包无红屏，
@@ -227,15 +230,7 @@ function WoodTabBarBase({ state, descriptors, navigation, bottomInset }: WoodTab
     <View
       style={[styles.bar, { paddingBottom: bottomInset, height: WOOD_TAB_BAR_HEIGHT + bottomInset }]}
     >
-      {/* 木纹。pointerEvents none，保证整条木条都能接收点击 */}
-      {barWidth > 0 ? (
-        <WoodGrain width={barWidth} height={WOOD_TAB_BAR_HEIGHT} seed={11} opacity={0.55} />
-      ) : null}
-
-      {/* 顶部一道浅色高光，木条才有厚度 */}
-      <View style={styles.topHighlight} pointerEvents="none" />
-
-      {/* 滑动朱砂标记：定位在木条顶缘，视觉上像一道「闩」 */}
+      {/* 滑动标记：定位在导航栏顶缘，压在分割线上 */}
       {tabWidth > 0 ? (
         <Animated.View
           pointerEvents="none"
@@ -276,20 +271,11 @@ export default WoodTabBar;
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: colors.tabBar,
-    // 顶缘的木色描边替代原来的灰色分割线 —— 灰线在木色上会显脏
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.tabBarBorder,
-    overflow: "hidden",
-  },
-  topHighlight: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
     backgroundColor: colors.surface,
-    opacity: 0.5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    // 顶缘的滑动标记要能压在分割线上，所以不裁切
+    overflow: "visible",
   },
   mark: {
     position: "absolute",
@@ -297,7 +283,7 @@ const styles = StyleSheet.create({
     width: MARK_WIDTH,
     height: MARK_HEIGHT,
     borderRadius: MARK_HEIGHT / 2,
-    backgroundColor: colors.accentOnWood,
+    backgroundColor: colors.accent,
   },
   row: {
     flexDirection: "row",
@@ -305,7 +291,7 @@ const styles = StyleSheet.create({
   },
   pressable: {
     flex: 1,
-    // 木纹只铺非安全区那 58px，按压区与视觉区对齐
+    // 按压区与视觉区对齐（不含底部安全区）
     height: WOOD_TAB_BAR_HEIGHT,
   },
   item: {

@@ -21,7 +21,7 @@ export default function EmptyState({
 }: Props) {
   return (
     <View style={styles.container}>
-      <Icon name={icon} size={56} color={colors.iconMuted} strokeWidth={1.5} />
+      <Icon name={icon} size={52} color={colors.iconMuted} />
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
     </View>

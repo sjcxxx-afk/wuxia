@@ -32,8 +32,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         // 选中/未选中色由 WoodTabBar 自己控制；这里给默认值以防万一被直接渲染
-        tabBarActiveTintColor: colors.accentOnWood,
-        tabBarInactiveTintColor: colors.iconOnWood,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.icon,
         // 键盘弹出时收起导航栏 —— 输入页需要空间
         tabBarHideOnKeyboard: true,
         // 转场：位移 + 淡入，配合下面的 freezeOnBlur

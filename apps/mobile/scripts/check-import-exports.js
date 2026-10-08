@@ -7,8 +7,8 @@
  * 负责隐藏原生页的 InkSplash 也会被一起卸载，原生页就永远留在屏幕上。
  *
  * TypeScript 能挡住「导入了不存在的东西」，但**挡不住运行时的意外**：
- *  - 默认参数在渲染期求值：`tile = textureTile.paper`，若 textureTile 为 undefined 就抛
- *  - 模块顶层的表达式：`wood.grain.map(...)` 在 import 时就抛
+ *  - 默认参数在渲染期求值：`color = colors.icon`，若 colors 解析成 undefined 就抛
+ *  - 模块顶层的表达式：`Object.keys(ICONS).map(...)` 在 import 时就抛
  *  这两类都会让整棵树挂掉。本脚本把「本项目内部模块」的具名导入逐个核对一遍，
  * 属于同一类问题的静态兜底。
  */

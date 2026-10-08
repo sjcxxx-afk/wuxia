@@ -20,12 +20,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F2EDE4",
+          "backgroundColor": "#FAF9F7",
           "image": "./assets/splash-mark.png",
           "imageWidth": 180,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#F2EDE4",
+            "backgroundColor": "#FAF9F7",
             "image": "./assets/splash-mark.png"
           }
         }
@@ -41,7 +41,7 @@
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#F2EDE4",
+        "backgroundColor": "#4F46E5",
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },

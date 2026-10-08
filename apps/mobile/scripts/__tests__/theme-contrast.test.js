@@ -55,12 +55,34 @@ describe("readPalette", () => {
     const palette = readPalette(
       require("path").resolve(__dirname, "..", "..", "lib", "theme.ts"),
     );
-    // 木墨体系的必需色板，缺一个都会让组件无从取色
-    ["paper", "paperRaised", "woodLight", "wood", "ink", "cinnabar", "cinnabarDeep", "moss"].forEach(
-      (k) => {
-        expect(palette[k]).toMatch(/^#[0-9a-fA-F]{6}$/);
-      },
+    // 纸白 + 靛蓝体系的必需色板，缺一个都会让组件无从取色。
+    // 换配色时这里的键名要一起改 —— 改不动就说明有组件还在依赖旧键。
+    [
+      "paper",
+      "paperRaised",
+      "paperSunken",
+      "paperDeep",
+      "ink",
+      "inkSecondary",
+      "inkTertiary",
+      "indigo",
+      "indigoSoft",
+      "success",
+      "danger",
+      "warning",
+    ].forEach((k) => {
+      expect(palette[k]).toMatch(/^#[0-9a-fA-F]{6}$/);
+    });
+  });
+
+  it("旧「木墨」色板键已彻底移除", () => {
+    const palette = readPalette(
+      require("path").resolve(__dirname, "..", "..", "lib", "theme.ts"),
     );
+    // 木纹/纸纹已砍掉，这些键若还在说明有人把旧体系带回来了
+    ["woodLight", "wood", "woodDark", "woodInk", "cinnabar", "cinnabarDeep"].forEach((k) => {
+      expect(palette[k]).toBeUndefined();
+    });
   });
 
   it("解析出 0 个颜色时抛错（格式变了要立刻暴露）", () => {
@@ -68,7 +90,7 @@ describe("readPalette", () => {
   });
 });
 
-describe("木墨配色达标情况（当前仓库真实状态）", () => {
+describe("配色达标情况（当前仓库真实状态）", () => {
   const projectRoot = require("path").resolve(__dirname, "..", "..");
 
   it("所有正文 / 图文组合达 WCAG AA", () => {
@@ -79,11 +101,17 @@ describe("木墨配色达标情况（当前仓库真实状态）", () => {
     expect(failures).toEqual([]);
   });
 
-  it("木面上的强调色必须用 cinnabarDeep 而不是 cinnabar", () => {
+  it("品牌主色靛蓝在两种面上都达 AA —— 它是选中态与主操作的颜色", () => {
     const env = readEnvironment(projectRoot);
-    // 踩过的坑：普通朱砂在浅木底上只有 3.52:1，木面上必须换深朱砂
-    expect(contrastRatio(env.cinnabar, env.woodLight)).toBeLessThan(AA_TEXT);
-    expect(contrastRatio(env.cinnabarDeep, env.woodLight)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(env.indigo, env.paper)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(env.indigo, env.paperRaised)).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  it("底部导航栏底色是纯白，标签两态都必须达 AA", () => {
+    const env = readEnvironment(projectRoot);
+    // 导航栏背景取 surface（= paperRaised）
+    expect(contrastRatio(env.indigo, env.paperRaised)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(env.inkSecondary, env.paperRaised)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it("弱化文字 inkTertiary 仍然达标（余量很小，调色要重新验）", () => {
@@ -94,7 +122,14 @@ describe("木墨配色达标情况（当前仓库真实状态）", () => {
     expect(r).toBeLessThan(5.5);
   });
 
-  it("故意不达标的组合确实达不到文字门槛（它们只配做纹理线）", () => {
+  it("三个状态色在纸白底上都达 AA —— 它们会被当文字用", () => {
+    const env = readEnvironment(projectRoot);
+    for (const key of ["success", "danger", "warning"]) {
+      expect(contrastRatio(env[key], env.paper)).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+
+  it("故意不达标的组合确实达不到文字门槛（它们只配做分隔线 / 容器面）", () => {
     const env = readEnvironment(projectRoot);
     for (const f of INTENTIONAL_FAILURES) {
       const ratio = contrastRatio(env[f.fg], env[f.bg]);
@@ -105,7 +140,9 @@ describe("木墨配色达标情况（当前仓库真实状态）", () => {
 
   it("未选中的导航图标至少过非文字门槛 3:1", () => {
     const env = readEnvironment(projectRoot);
-    expect(contrastRatio(env.inkSecondary, env.woodLight)).toBeGreaterThanOrEqual(AA_LARGE_TEXT);
+    expect(contrastRatio(env.inkSecondary, env.paperRaised)).toBeGreaterThanOrEqual(
+      AA_LARGE_TEXT,
+    );
   });
 });
 
