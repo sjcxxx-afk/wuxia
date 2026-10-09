@@ -359,6 +359,85 @@ function renderPreview() {
   items.forEach((it, i) => console.log(`  第${i + 1}格 ${it.note}`));
 }
 
+/**
+ * 桌面显示模拟：把自适应图标按启动器实际使用的遮罩形状裁出来。
+ *
+ * 为什么需要：`assets/icon.png` 只在旧系统与作为兜底时被使用；
+ * Android 8+ 桌面上渲染的是「adaptiveIcon.backgroundColor + foregroundImage」，
+ * 且**由启动器决定遮罩形状**（圆角方、正圆、水滴…）。
+ * 所以「图标会不会被切」只有把前景套进遮罩里才看得出来。
+ */
+function renderDesktopPreview() {
+  // 自适应前景（白字形，透明底）＋ app.json 里的靛蓝底
+  const fg = decodePng(fs.readFileSync(path.join(projectRoot, OUT_ADAPTIVE)));
+  const bg = BRAND.indigo;
+
+  const cell = 200;
+  const gap = 20;
+  const pads = 20;
+  const W = 4 * cell + 5 * gap;
+  const H = cell + gap * 2 + pads;
+  const sheet = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) {
+    sheet[i * 4] = 240;
+    sheet[i * 4 + 1] = 240;
+    sheet[i * 4 + 2] = 242;
+    sheet[i * 4 + 3] = 255;
+  }
+
+  // 注意：108dp 画布里实际可见的只有中心 72dp（约 66%），
+  // 这里按该比例模拟，才能真实反映「有没有被切」。
+  const visible = cell * 0.66;
+  const shapeR = visible / 2;
+  const inset = (cell - visible) / 2;
+
+  // 四种遮罩：圆角方 20% / 圆角方 33% / 正圆 / 水滴（部分启动器）
+  const masks = ["squircle20", "squircle33", "circle", "square"];
+
+  masks.forEach((kind, idx) => {
+    const bx = gap + idx * (cell + gap);
+    const by = gap + pads / 2;
+    for (let y = 0; y < cell; y++) {
+      for (let x = 0; x < cell; x++) {
+        const px = x - cell / 2;
+        const py = y - cell / 2;
+        const r0 = Math.abs(px);
+        const r1 = Math.abs(py);
+        let inside;
+        if (kind === "circle") {
+          inside = Math.hypot(px, py) <= shapeR;
+        } else if (kind === "square") {
+          inside = r0 <= shapeR && r1 <= shapeR;
+        } else {
+          const rad = visible * (kind === "squircle20" ? 0.2 : 0.33);
+          const cx = Math.min(r0, shapeR - rad);
+          const cy = Math.min(r1, shapeR - rad);
+          const dx = r0 - cx;
+          const dy = r1 - cy;
+          inside = r0 <= shapeR && r1 <= shapeR && dx * dx + dy * dy <= rad * rad;
+        }
+        if (!inside) continue;
+
+        // 自适应前景按 108dp 画布铺满，取样时保持等比
+        const u = Math.min(fg.width - 1, Math.max(0, Math.round((x / cell) * fg.width)));
+        const v = Math.min(fg.height - 1, Math.max(0, Math.round((y / cell) * fg.height)));
+        const si = (v * fg.width + u) * 4;
+        const a = fg.data[si + 3] / 255;
+        const di = ((by + y) * W + bx + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          sheet[di + c] = Math.round(fg.data[si + c] * a + bg[c] * (1 - a));
+        }
+        sheet[di + 3] = 255;
+      }
+    }
+  });
+
+  const out = path.join(projectRoot, "logs/desktop-preview.png");
+  fs.writeFileSync(out, encodePng(W, H, sheet));
+  console.log(`[icons] 桌面遮罩模拟 ${W}x${H} -> logs/desktop-preview.png`);
+  console.log("  依次为：圆角方 20% / 圆角方 33% / 正圆 / 方形（均为 108dp 画布的中心 66%）");
+}
+
 function main() {
   const files = [
     // 注意：assets/icon.png **不在产出列表里**。它是设计源，只读不写。
@@ -368,16 +447,18 @@ function main() {
       // 底色由 app.json 的 adaptiveIcon.backgroundColor 提供（靛蓝 #4F46E5），
       // 所以前景用白色字形 —— 与原图标「靛蓝底 + 白匣」的观感一致。
       //
-      // 取 0.54 而不是更大：部分启动器用**圆形**遮罩，安全区是中心 66%。
-      // 这只匣子宽高比约 1.73:1，要让它的对角线也落进 66% 的圆内，
-      // 宽度上限约 57%。0.54 既安全，又与原图里字形的占比一致。
-      buf: renderGlyph(1024, 0.54, BRAND.white),
+      // 取 0.50：部分启动器用**圆形**遮罩，安全区是中心 66%。
+      // 这只匣子宽高比约 1.73:1，0.54 时角点到中心 0.312×画布、
+      // 安全圆半径 0.33 —— 只剩 1.8% 余量，而 Android 规范允许启动器
+      // 再放大到 1.1×（视差用），那样就会切到角。0.50 留出约 12% 余量，
+      // 放大 1.1× 后仍有 3.6%。见 logs/desktop-preview.png。
+      buf: renderGlyph(1024, 0.5, BRAND.white),
       note: "自适应图标前景：透明底 + 白色匣形（叠在靛蓝底上，形状由系统裁切）",
     },
     {
       out: OUT_MONO,
       // 与自适应前景同比例：两者会被系统放在同一遮罩下，比例不一致会「跳大小」
-      buf: renderGlyph(1024, 0.54, BRAND.black),
+      buf: renderGlyph(1024, 0.5, BRAND.black),
       note: "Android 13+ 主题图标：透明底 + 纯黑匣形（由系统着色）",
     },
     {
@@ -405,9 +486,11 @@ function main() {
     console.log(`  · ${f.out}  ${(f.buf.length / 1024).toFixed(1)} KB  ${f.note}`);
   }
 
-  // 顺带出合成预览——白字形不合成根本看不见，等于没验证
+  // 顺带出两张预览——白字形不合成根本看不见，等于没验证
   console.log("");
   renderPreview();
+  console.log("");
+  renderDesktopPreview();
   return 0;
 }
 
@@ -422,6 +505,7 @@ module.exports = {
   renderGlyph,
   renderSeal,
   renderPreview,
+  renderDesktopPreview,
 };
 
 if (require.main === module) {
