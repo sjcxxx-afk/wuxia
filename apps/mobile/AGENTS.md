@@ -84,18 +84,36 @@
   字形全部收在 `lib/icons.ts`，换图标库只改那一个文件。
 - 选中态用 `active` 属性切 Ionicons 的实心变体，不要自己做加粗或叠笔画。
 
-### 资源与脚本
+### 品牌图形
 
-品牌图（应用图标 / 启动页标记 / 匣灵头像）是**脚本生成**的，不要手改 PNG：
+**`assets/icon.png` 是唯一的设计源，而且是只读的。**
+它是那张「靛蓝圆角方块 + 白色开口木匣」的原始图标（匣盖上有一颗星光，
+两个靛蓝圆点是眼睛，中间白环是扣）。脚本**绝不写出它**。
+
+其余品牌图都由它派生，保证「桌面上那个匣子」和「启动页那个匣子」是同一只：
 
 ```bash
-npm run generate:icons   # 重新生成 assets/ 下的品牌图
+npm run generate:icons   # 从设计源派生，并输出合成预览
 ```
 
-- `scripts/icons.js` —— 用**有向距离场（SDF）解析抗锯齿**绘制标记。
-  不用 AI 重绘：确定性、可复算、可回归。
-- 改了 `lib/theme.ts` 的 palette 后，记得同步 `scripts/icons.js` 顶部的 `BRAND`
-  并重跑 `generate:icons`，否则应用图标会与界面配色脱节。
+| 产出 | 内容 |
+|------|------|
+| `adaptive-icon.png` | 白色字形 + 透明底（叠在 `app.json` 的 `adaptiveIcon.backgroundColor` 靛蓝上） |
+| `adaptive-icon-monochrome.png` | 黑色字形 + 透明底（Android 13+ 由系统着色） |
+| `splash-mark.png` | 靛蓝字形 + 透明底（叠在纸白启动页上） |
+| `xialing-avatar.png` | 匣灵头像，SDF 绘制的靛蓝同心圆 |
+
+- **不要手改这几张 PNG**，改形状要改设计源，改颜色要改 `scripts/icons.js` 的 `BRAND`。
+- 自适应前景的比例固定在 **0.54**：部分启动器用圆形遮罩，安全区是中心 66%，
+  这只匣子宽高比约 1.73:1，要让对角线也落进圆内，宽度上限约 57%。
+  **别调大**，会被裁掉四角。
+- 生成时会自动输出 `logs/brand-preview.png`（各图叠在**实际底色**上）。
+  自适应前景是白字形，白色查看器里根本看不见 —— **不看合成结果等于没验证**。
+
+> 历史教训：曾经手绘过一套 SDF 标记（「木墨」时期），结论是远不如设计稿有辨识度，
+> 已全部废弃。**不要再手绘品牌图形**，派生即可。
+
+改了 `lib/theme.ts` 的 palette 后要同步 `BRAND` 并重跑 `generate:icons`。
 
 新增原生依赖**必须** `npx expo install`（走官方矩阵），手写版本号会被
 `check:deps` 拦下。

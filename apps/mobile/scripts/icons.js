@@ -1,22 +1,25 @@
 /**
- * 应用图标重映射 —— 物匣
- * ========================
+ * 品牌图形派生 —— 物匣
+ * =====================
  *
- * 背景：assets 下原有 4 张图字节完全相同，都是「白色画布 + 靛蓝圆角方块 +
- * 白色匣形字形」的占位图。靛蓝 #3936E7 与新的木墨色系直接冲突
- *（冷紫 × 暖木纹会发脏），必须换掉。
+ * **唯一的设计源是 `assets/icon.png`** —— 那张「靛蓝圆角方块 + 白色开口木匣」
+ * 的原始图标（匣盖上有一颗星光，两个靛蓝圆点是眼睛，中间白环是扣）。
+ * 它由设计提供，是**只读输入**：本脚本绝不写出它。
  *
- * 做法：不重新设计图形，而是**确定性地重映射颜色**：
- *   - 用「蓝色超出量」b - (r+g)/2 把靛蓝方块从白底里分离出来
- *   - 圆角半径由方块顶行跨度反推（圆角矩形在最顶一行恰好只覆盖 [x0+r, x1-r]）
- *   - 圆角矩形**内部**的浅色像素即字形遮罩（外部白角与白字形同色，只能靠几何区分）
- *   - 字形重新上墨，底换成宣纸
+ * 脚本做的是从它派生出其余几项，让全应用的品牌形状保持一致：
+ *   - adaptive-icon.png           白色字形，透明底（叠在 app.json 的靛蓝底上）
+ *   - adaptive-icon-monochrome.png 黑色字形，透明底（Android 13+ 由系统着色）
+ *   - splash-mark.png             靛蓝字形，透明底（叠在纸白启动页上）
  *
- * 为什么不用 AI 重绘：用户明确选了「修复技术配置」而非「AI 重新生成品牌图形」。
- * 而且确定性脚本可复算、可评审、可回归。
+ * 为什么不手绘一套：曾经这样做过（SDF 绘制的极简木匣），结论是
+ * 手绘图形远不如设计稿有辨识度，用户明确要求换回原图标。
+ * 派生而不是重绘，才能保证「桌面上那个匣子」和「启动页那个匣子」是同一只。
  *
- * 源文件 assets/_icon-source.png 是原始占位图的**只读副本**：脚本读它、
- * 写出 icon/adaptive/monochrome，因此可反复重跑而不会自我侵蚀。
+ * 字形提取原理（早期版本留下的机制，这里重新接上）：
+ *   1. 用「蓝色超出量」b - (r+g)/2 分离出靛蓝方块，反推圆角半径；
+ *   2. 画布外的白角与字形白**颜色完全相同**，靠颜色分不开 ——
+ *      但两者不连通：从画布四边对「非靛蓝」像素做洪泛填充，标出的即外部白；
+ *   3. 剩下的浅色像素就是字形，覆盖率取连续值，缩放后边缘依然平滑。
  *
  * 用法：node scripts/icons.js
  */
@@ -25,8 +28,10 @@ const fs = require("fs");
 const path = require("path");
 const { decodePng, encodePng } = require("./png-codec");
 
-const SRC = "assets/_icon-source.png";
-const OUT_ICON = "assets/icon.png";
+const projectRoot = path.resolve(__dirname, "..");
+
+/** 设计源。只读，脚本永不写它。 */
+const SRC = "assets/icon.png";
 const OUT_ADAPTIVE = "assets/adaptive-icon.png";
 const OUT_MONO = "assets/adaptive-icon-monochrome.png";
 const OUT_AVATAR = "assets/xialing-avatar.png";
@@ -37,12 +42,9 @@ const OUT_SPLASH_MARK = "assets/splash-mark.png";
  * 改了 theme 记得同步这里并重跑 npm run generate:icons。
  */
 const BRAND = {
-  paperTop: [255, 255, 255], // #FFFFFF
-  paper: [250, 249, 247], // #FAF9F7
-  ink: [31, 41, 55], // #1F2937
+  /** 白色 —— 自适应图标前景（叠在靛蓝底上），与原图标的白匣同色 */
+  white: [255, 255, 255],
   indigo: [79, 70, 229], // #4F46E5
-  /** 靛蓝亮档 —— 应用图标的渐变顶端，让方块不至于死平 */
-  indigoLight: [118, 111, 246],
   black: [0, 0, 0], // Android 13+ 主题图标由系统着色，必须纯黑
 };
 
@@ -212,25 +214,52 @@ function resampleAlpha(mask, srcW, srcH, box, outW, outH) {
   return out;
 }
 
-/* __RENDER__ */
+/**
+ * 从设计源提取字形，重上色后输出为**透明底** PNG。
+ *
+ * 这是本脚本的核心：所有品牌图都从同一只匣子派生，
+ * 因此桌面图标、启动页、主题图标里的形状必然一致。
+ *
+ * @param size     输出边长
+ * @param fitRatio 字形最长边占输出边长的比例（余量）
+ * @param color    字形颜色 [r,g,b]
+ */
+function renderGlyph(size, fitRatio, color) {
+  const src = decodePng(fs.readFileSync(path.join(projectRoot, SRC)));
+  const a = analyze(src);
+
+  // 字形按最长边适配，居中。留白比例由 fitRatio 控制。
+  const target = size * fitRatio;
+  const scale = Math.min(target / a.glyph.w, target / a.glyph.h);
+  const gw = Math.max(1, Math.round(a.glyph.w * scale));
+  const gh = Math.max(1, Math.round(a.glyph.h * scale));
+  const mask = resampleAlpha(a.mask, a.W, a.H, a.glyph, gw, gh);
+
+  const out = Buffer.alloc(size * size * 4);
+  const ox = Math.round((size - gw) / 2);
+  const oy = Math.round((size - gh) / 2);
+  for (let y = 0; y < gh; y++) {
+    for (let x = 0; x < gw; x++) {
+      const alpha = Math.max(0, Math.min(1, mask[y * gw + x]));
+      if (alpha <= 0) continue;
+      const di = ((oy + y) * size + ox + x) * 4;
+      out[di] = color[0];
+      out[di + 1] = color[1];
+      out[di + 2] = color[2];
+      out[di + 3] = Math.round(alpha * 255);
+    }
+  }
+  return encodePng(size, size, out);
+}
 
 /* ---------------------------------------------------------------- 绘制 */
 
 /**
- * 有向距离场（SDF）圆角矩形。返回负值表示在内部。
+ * 有向距离场（SDF）圆。返回负值表示在内部。
  * 用 SDF 而不是「按像素判断内外」，是为了拿**解析抗锯齿**：
  * 覆盖率 = clamp(0.5 - d, 0, 1)，边缘因此是连续过渡而非台阶。
- * 图标会被系统缩放到各种尺寸，台阶边缘在小尺寸下非常显眼。
  */
-function sdRoundRect(px, py, cx, cy, hw, hh, r) {
-  const qx = Math.abs(px - cx) - (hw - r);
-  const qy = Math.abs(py - cy) - (hh - r);
-  const ax = Math.max(qx, 0);
-  const ay = Math.max(qy, 0);
-  return Math.hypot(ax, ay) + Math.min(Math.max(qx, qy), 0) - r;
-}
 
-/** SDF 圆 */
 function sdCircle(px, py, cx, cy, r) {
   return Math.hypot(px - cx, py - cy) - r;
 }
@@ -238,107 +267,6 @@ function sdCircle(px, py, cx, cy, r) {
 /** SDF 由覆盖率换算：d<=0 在内部，边界在 d=0 处，正好半个像素宽的过渡带 */
 function coverage(d) {
   return Math.max(0, Math.min(1, 0.5 - d));
-}
-
-/**
- * 木匣标记 —— 与 lib/icons.ts 的 chest 同一套几何。
- *
- * 为什么不再复用原图字形：原图标是个带发光效果的立体公文包，
- * 颜色重映射后是一团糊状黑块（还带光晕），与水墨的线性语言冲突。
- * 匣形本来就只由圆角矩形构成，用 SDF 重画能得到干净、锐利、
- * 与应用内图标严格一致的标记。
- *
- * 坐标沿用 24×24 设计空间，再按 k 缩放到目标画布。
- */
-function inkChestShapes(k, ox, oy) {
-  const u = (v) => v * k;
-  const cx = (v) => ox + u(v);
-  return {
-    // 盖：比身略宽，这是「匣」这个形最关键的识别特征
-    lid: { sdf: sdRoundRect, cx: cx(12), cy: oy + u(8.0), hw: u(9.0), hh: u(2.4), r: u(1.6) },
-    // 盖与身之间的缝隙：用纸色画一道，把两者分开，否则糊成一整块。
-    // 刻意比盖子略窄（8.8 < 9.0），否则两侧会探出小耳朵。
-    rim: { sdf: sdRoundRect, cx: cx(12), cy: oy + u(10.45), hw: u(8.8), hh: u(0.3), r: u(0.3) },
-    // 身
-    body: { sdf: sdRoundRect, cx: cx(12), cy: oy + u(15.7), hw: u(7.6), hh: u(5.3), r: u(1.8) },
-    // 扣：先铺一圈纸色再压焦墨，于是扣上有纸色的描边，负形读得出来
-    latchHalo: { sdf: sdRoundRect, cx: cx(12), cy: oy + u(15.7), hw: u(2.35), hh: u(2.45), r: u(0.9) },
-    latch: { sdf: sdRoundRect, cx: cx(12), cy: oy + u(15.7), hw: u(1.7), hh: u(1.8), r: u(0.6) },
-  };
-}
-
-/**
- * 渲染图标。
- * @param size     输出边长
- * @param ratio    标记边长占画布的比例
- * @param inkColor 标记颜色
- * @param bg       null = 透明底；否则 [topRGB, bottomRGB] 竖向渐变
- */
-function renderIcon(size, ratio, inkColor, bg) {
-  const out = Buffer.alloc(size * size * 4);
-  // 光学居中：标记重心略高于几何中心才显得居中
-  const k = (size * ratio) / 24;
-  const ox = (size - 24 * k) / 2;
-  const oy = (size - 24 * k) / 2 - size * 0.012;
-  const s = inkChestShapes(k, ox, oy);
-
-  /* 底：竖向宣纸渐变，或透明 */
-  if (bg) {
-    for (let y = 0; y < size; y++) {
-      const t = y / (size - 1);
-      for (let x = 0; x < size; x++) {
-        const i = (y * size + x) * 4;
-        out[i] = Math.round(bg[0][0] + (bg[1][0] - bg[0][0]) * t);
-        out[i + 1] = Math.round(bg[0][1] + (bg[1][1] - bg[0][1]) * t);
-        out[i + 2] = Math.round(bg[0][2] + (bg[1][2] - bg[0][2]) * t);
-        out[i + 3] = 255;
-      }
-    }
-  }
-
-  /**
-   * 把一个形状按覆盖率合成进缓冲。
-   * mode = "over"  正常叠加（source-over）
-   * mode = "erase" 擦除（destination-out）—— 透明底上用来挖出负形；
-   *               有底色时退化为「用底色画」，效果与挖除一致。
-   */
-  const composite = (shape, color, mode) => {
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const d = shape.sdf(x + 0.5, y + 0.5, shape.cx, shape.cy, shape.hw, shape.hh, shape.r);
-        const cov = coverage(d);
-        if (cov <= 0) continue;
-        const i = (y * size + x) * 4;
-        const dstA = out[i + 3] / 255;
-        const keep = dstA * (1 - cov);
-        // erase 是纯 destination-out（只动 alpha），over 是常规 source-over
-        const outA = mode === "erase" ? keep : cov + keep;
-        if (outA <= 0) continue;
-        for (let c = 0; c < 3; c++) {
-          out[i + c] = Math.round((color[c] * cov + out[i + c] * keep) / outA);
-        }
-        out[i + 3] = Math.round(outA * 255);
-      }
-    }
-  };
-
-  // 绘制顺序即叠压顺序：身 → 盖 → 盖缝 → 扣的纸色描边 → 扣
-  composite(s.body, inkColor, "over");
-  composite(s.lid, inkColor, "over");
-  composite(s.rim, BRAND.paper, bg ? "over" : "erase");
-  composite(s.latchHalo, BRAND.paper, bg ? "over" : "erase");
-  composite(s.latch, inkColor, "over");
-
-  return encodePng(size, size, out);
-}
-
-/**
- * 画出木匣标记的四个形状（供测试断言几何，不直接返回像素）。
- * 单独暴露是为了让单测能验证「盖比身宽」这类设计约束。
- */
-function chestShapesForTest(size, ratio) {
-  const k = (size * ratio) / 24;
-  return inkChestShapes(k, (size - 24 * k) / 2, (size - 24 * k) / 2);
 }
 
 /**
@@ -353,8 +281,8 @@ function renderSeal(size) {
   const shapes = [
     // 外圈：靛蓝
     { r: size * 0.46, color: BRAND.indigo },
-    // 内圈：纸白留白，形成一道环
-    { r: size * 0.34, color: BRAND.paperTop },
+    // 内圈：白留白，形成一道环
+    { r: size * 0.34, color: BRAND.white },
     // 圆心：靛蓝点
     { r: size * 0.13, color: BRAND.indigo },
   ];
@@ -378,29 +306,79 @@ function renderSeal(size) {
   return encodePng(size, size, out);
 }
 
-function main() {
-  const projectRoot = path.resolve(__dirname, "..");
+/**
+ * 合成预览：把每张派生图叠在它**实际会被叠上去的底色**上排成一行，
+ * 输出到 logs/brand-preview.png 供人眼确认。
+ *
+ * 为什么必需：自适应前景是白字形 + 透明底，白色查看器里完全看不见 ——
+ * 不看合成结果就等于没验证。这条是上一轮「图标写完没看图就推送」的教训。
+ */
+function renderPreview() {
+  const items = [
+    { file: "assets/icon.png", bg: [255, 255, 255], note: "启动器图标（设计源，原样）" },
+    { file: OUT_ADAPTIVE, bg: BRAND.indigo, note: "自适应前景 · 叠靛蓝底" },
+    { file: OUT_MONO, bg: [250, 249, 247], note: "主题图标 · 叠纸白" },
+    { file: OUT_SPLASH_MARK, bg: [250, 249, 247], note: "启动页标记 · 叠纸白" },
+    { file: OUT_AVATAR, bg: [250, 249, 247], note: "匣灵头像" },
+  ];
+  const cell = 240;
+  const gap = 16;
+  const W = items.length * (cell + gap) + gap;
+  const H = cell + gap * 2;
+  const sheet = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) {
+    sheet[i * 4] = 236;
+    sheet[i * 4 + 1] = 236;
+    sheet[i * 4 + 2] = 236;
+    sheet[i * 4 + 3] = 255;
+  }
 
+  items.forEach((it, idx) => {
+    const img = decodePng(fs.readFileSync(path.join(projectRoot, it.file)));
+    const bx = gap + idx * (cell + gap);
+    const by = gap;
+    for (let y = 0; y < cell; y++) {
+      for (let x = 0; x < cell; x++) {
+        const sx = Math.min(img.width - 1, Math.floor((x / cell) * img.width));
+        const sy = Math.min(img.height - 1, Math.floor((y / cell) * img.height));
+        const si = (sy * img.width + sx) * 4;
+        const a = img.data[si + 3] / 255;
+        const di = ((by + y) * W + bx + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          sheet[di + c] = Math.round(img.data[si + c] * a + it.bg[c] * (1 - a));
+        }
+        sheet[di + 3] = 255;
+      }
+    }
+  });
+
+  const out = path.join(projectRoot, "logs/brand-preview.png");
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, encodePng(W, H, sheet));
+  console.log(`[icons] 合成预览 ${W}x${H} -> logs/brand-preview.png`);
+  items.forEach((it, i) => console.log(`  第${i + 1}格 ${it.note}`));
+}
+
+function main() {
   const files = [
-    {
-      out: OUT_ICON,
-      // 靛蓝渐变底 + 纸白标记：启动器图标要在桌面上立得住，
-      // 白底图标在浅色壁纸上会「消失」，所以底色用品牌色
-      buf: renderIcon(1024, 0.7, BRAND.paperTop, [BRAND.indigoLight, BRAND.indigo]),
-      note: "启动器图标：靛蓝竖向渐变底 + 纸白标记",
-    },
+    // 注意：assets/icon.png **不在产出列表里**。它是设计源，只读不写。
     {
       out: OUT_ADAPTIVE,
-      // Android 自适应图标的安全区是中心 66%，0.6 留足余量。
-      // 底色由 app.json 的 adaptiveIcon.backgroundColor 提供（靛蓝），
-      // 所以前景用纸白标记，负形透明处会透出靛蓝。
-      buf: renderIcon(1024, 0.6, BRAND.paperTop, null),
-      note: "自适应图标前景：透明底 + 纸白标记（形状由系统裁切）",
+      // 自适应图标前景必须是透明底、且形状落在中心安全区内。
+      // 底色由 app.json 的 adaptiveIcon.backgroundColor 提供（靛蓝 #4F46E5），
+      // 所以前景用白色字形 —— 与原图标「靛蓝底 + 白匣」的观感一致。
+      //
+      // 取 0.54 而不是更大：部分启动器用**圆形**遮罩，安全区是中心 66%。
+      // 这只匣子宽高比约 1.73:1，要让它的对角线也落进 66% 的圆内，
+      // 宽度上限约 57%。0.54 既安全，又与原图里字形的占比一致。
+      buf: renderGlyph(1024, 0.54, BRAND.white),
+      note: "自适应图标前景：透明底 + 白色匣形（叠在靛蓝底上，形状由系统裁切）",
     },
     {
       out: OUT_MONO,
-      buf: renderIcon(1024, 0.6, BRAND.black, null),
-      note: "Android 13+ 主题图标：透明底 + 纯黑标记（由系统着色）",
+      // 与自适应前景同比例：两者会被系统放在同一遮罩下，比例不一致会「跳大小」
+      buf: renderGlyph(1024, 0.54, BRAND.black),
+      note: "Android 13+ 主题图标：透明底 + 纯黑匣形（由系统着色）",
     },
     {
       out: OUT_AVATAR,
@@ -417,7 +395,7 @@ function main() {
       // 省略 image 会让 AAPT2 直接报 "resource drawable/splashscreen_logo not found"，
       // release 构建挂在 :app:processReleaseResources。所以这张图是必需的。
       out: OUT_SPLASH_MARK,
-      buf: renderIcon(1024, 0.66, BRAND.indigo, null),
+      buf: renderGlyph(1024, 0.66, BRAND.indigo),
       note: "启动页标记：透明底 + 靛蓝标记（叠在 app.json 的 splash backgroundColor 之上）",
     },
   ];
@@ -426,6 +404,10 @@ function main() {
     fs.writeFileSync(path.join(projectRoot, f.out), f.buf);
     console.log(`  · ${f.out}  ${(f.buf.length / 1024).toFixed(1)} KB  ${f.note}`);
   }
+
+  // 顺带出合成预览——白字形不合成根本看不见，等于没验证
+  console.log("");
+  renderPreview();
   return 0;
 }
 
@@ -435,13 +417,11 @@ module.exports = {
   insideRoundedRect,
   analyze,
   resampleAlpha,
-  sdRoundRect,
   sdCircle,
   coverage,
-  inkChestShapes,
-  chestShapesForTest,
-  renderIcon,
+  renderGlyph,
   renderSeal,
+  renderPreview,
 };
 
 if (require.main === module) {
